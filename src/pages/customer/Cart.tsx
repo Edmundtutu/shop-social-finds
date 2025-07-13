@@ -31,7 +31,7 @@ const Cart: React.FC = () => {
     setCartItems([]);
   }, []);
 
-  const updateQuantity = (itemId: number, newQuantity: number) => {
+  const updateQuantity = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
       removeItem(itemId);
       return;
@@ -47,7 +47,7 @@ const Cart: React.FC = () => {
     // TODO: Update quantity via API
   };
 
-  const removeItem = (itemId: number) => {
+  const removeItem = (itemId: string) => {
     setCartItems(items => items.filter(item => item.id !== itemId));
     // TODO: Remove item via API
   };

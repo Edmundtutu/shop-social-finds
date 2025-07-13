@@ -46,11 +46,11 @@ const Discover: React.FC = () => {
     // TODO: Implement search
   };
 
-  const handleAddToCart = (productId: number) => {
+  const handleAddToCart = (productId: string) => {
     // TODO: Add to cart via API
   };
 
-  const handleToggleFavorite = (productId: number) => {
+  const handleToggleFavorite = (productId: string) => {
     // TODO: Toggle favorite via API
   };
 

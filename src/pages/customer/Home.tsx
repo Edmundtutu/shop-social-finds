@@ -38,7 +38,7 @@ const Home: React.FC = () => {
     setShowCreatePost(false);
   };
 
-  const handleLikePost = (postId: number) => {
+  const handleLikePost = (postId: string) => {
     // TODO: Like/unlike post via API
   };
 

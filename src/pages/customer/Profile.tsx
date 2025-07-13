@@ -67,8 +67,8 @@ const Profile: React.FC = () => {
                   {user?.verified ? 'Verified' : 'Unverified'}
                 </Badge>
                 <Badge variant="outline">
-                  {user?.role === 'customer' ? 'Customer' : 
-                   user?.role === 'influencer' ? 'Influencer' : 'Vendor'}
+                  {user?.role === 'customer' ? 
+                    (user?.isInfluencer ? 'Influencer' : 'Customer') : 'Vendor'}
                 </Badge>
               </div>
             </div>
