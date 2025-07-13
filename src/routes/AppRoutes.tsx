@@ -93,34 +93,36 @@ const AppRoutes: React.FC = () => {
         </PublicRoute>
       } />
 
-      {/* Customer Routes */}
+      {/* Public Routes - Allow guests */}
       <Route path="/" element={
-        <ProtectedRoute layout="main">
+        <MainLayout>
           <Home />
-        </ProtectedRoute>
+        </MainLayout>
       } />
       <Route path="/discover" element={
-        <ProtectedRoute layout="main">
+        <MainLayout>
           <Discover />
-        </ProtectedRoute>
+        </MainLayout>
       } />
       <Route path="/product/:id" element={
-        <ProtectedRoute layout="main">
+        <MainLayout>
           <Product />
-        </ProtectedRoute>
+        </MainLayout>
       } />
       <Route path="/map" element={
-        <ProtectedRoute layout="main">
+        <MainLayout>
           <ShopMap />
-        </ProtectedRoute>
+        </MainLayout>
       } />
+      
+      {/* Protected Customer Routes */}
       <Route path="/cart" element={
-        <ProtectedRoute layout="main">
+        <ProtectedRoute requiredRole={['customer']} layout="main">
           <Cart />
         </ProtectedRoute>
       } />
       <Route path="/profile" element={
-        <ProtectedRoute layout="main">
+        <ProtectedRoute requiredRole={['customer']} layout="main">
           <Profile />
         </ProtectedRoute>
       } />
