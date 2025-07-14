@@ -13,10 +13,10 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Shopify PWA',
+        name: 'Shopify',
         short_name: 'Shopify',
-        description: 'Social commerce PWA',
-        theme_color: '#3b82f6',
+        description: 'Social commerce',
+        theme_color: '#00000000',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -28,7 +28,22 @@ export default defineConfig(({ mode }) => ({
             sizes: '512x512',
             type: 'image/png'
           }
-        ]
+        ],
+        screenshots: [
+          {
+            src: "screenshot-mobile.png",
+            sizes: "473x840",
+            type: "image/png",
+            form_factor: "narrow" // for mobile
+          },
+          {
+            src: "screenshot-desktop.png",
+            sizes: "1920X966",
+            type: "image/png",
+            form_factor: "wide" // for desktop
+          }
+        ],
+
       }
     })
   ].filter(Boolean),
