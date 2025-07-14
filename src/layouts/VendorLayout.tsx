@@ -21,7 +21,7 @@ const VendorLayout: React.FC<VendorLayoutProps> = ({ children }) => {
         
         {/* Main Content */}
         <main className="flex-1 min-h-screen md:ml-64 pb-20 md:pb-6">
-          <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6 max-w-7xl">
+          <div className="container mx-auto px-4 py-6 max-w-6xl">
             {children}
           </div>
         </main>
