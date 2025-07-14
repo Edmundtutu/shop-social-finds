@@ -3,15 +3,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   Search, 
   ShoppingCart, 
   User, 
   Heart, 
-  MapPin,
   Menu,
   X,
-  LogOut
+  Bell,
+  MessageCircle
 } from 'lucide-react';
 import { User as UserType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
@@ -26,203 +27,158 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const navigation = user ? [
-    { name: 'Feed', href: '/', icon: null },
-    { name: 'Discover', href: '/discover', icon: null },
-    { name: 'Map', href: '/map', icon: MapPin },
-    ...(user.role === 'vendor' ? [{ name: 'Vendor Portal', href: '/vendor/dashboard', icon: null }] : []),
-  ] : [];
-
-  const isActivePath = (path: string) => location.pathname === path;
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Navigate to search results
       window.location.href = `/discover?search=${encodeURIComponent(searchQuery)}`;
     }
   };
 
   return (
-    <nav className="bg-card border-b sticky top-0 z-40">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="text-xl font-bold text-primary">
+    <nav className="bg-card/95 backdrop-blur-sm border-b sticky top-0 z-40">
+      <div className="mx-auto px-3 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between h-14 lg:h-16">
+          {/* Logo - Always visible */}
+          <Link to="/" className="text-lg sm:text-xl font-bold text-primary flex-shrink-0">
             Shopify
           </Link>
 
-          {/* Search - Desktop */}
+          {/* Search Bar - Desktop and tablet */}
           {user && (
-            <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-lg mx-8">
+            <form onSubmit={handleSearch} className="hidden sm:flex flex-1 max-w-lg mx-4 lg:mx-8">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search products, shops..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-muted/50 border-0 focus:bg-background h-9 lg:h-10"
                 />
               </div>
             </form>
           )}
 
-          {/* Desktop Navigation */}
+          {/* Desktop Actions */}
           {user ? (
-            <div className="hidden lg:flex items-center space-x-6">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`
-                    flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                    ${isActivePath(item.href)
-                      ? 'text-primary bg-primary/10'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                    }
-                  `}
-                >
-                  {item.icon && <item.icon className="h-4 w-4" />}
-                  {item.name}
-                </Link>
-              ))}
-
-              <Link to="/favorites" className="relative">
-                <Button variant="ghost" size="icon">
-                  <Heart className="h-5 w-5" />
-                </Button>
-              </Link>
-
-              <Link to="/cart" className="relative">
-                <Button variant="ghost" size="icon">
-                  <ShoppingCart className="h-5 w-5" />
-                </Button>
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs">
-                  0
+            <div className="hidden lg:flex items-center space-x-2">
+              <Button variant="ghost" size="icon" className="relative">
+                <MessageCircle className="h-5 w-5" />
+                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0 bg-blue-500">
+                  2
                 </Badge>
-              </Link>
+              </Button>
 
-              <div className="flex items-center gap-2">
-                <Link to="/profile">
-                  <Button variant="ghost" size="icon">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="icon" onClick={logout}>
-                  <LogOut className="h-5 w-5" />
-                </Button>
-              </div>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0 bg-red-500">
+                  3
+                </Badge>
+              </Button>
+
+              {user.role === 'customer' && (
+                <>
+                  <Link to="/favorites">
+                    <Button variant="ghost" size="icon">
+                      <Heart className="h-5 w-5" />
+                    </Button>
+                  </Link>
+
+                  <Link to="/cart" className="relative">
+                    <Button variant="ghost" size="icon">
+                      <ShoppingCart className="h-5 w-5" />
+                    </Button>
+                    <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0">
+                      0
+                    </Badge>
+                  </Link>
+                </>
+              )}
+
+              <Link to="/profile">
+                <Avatar className="h-8 w-8 cursor-pointer">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                    {user.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
             </div>
           ) : (
-            <div className="hidden lg:flex items-center space-x-4">
+            <div className="hidden sm:flex items-center space-x-3">
               <Link to="/login">
-                <Button variant="ghost">Login</Button>
+                <Button variant="ghost" size="sm">Login</Button>
               </Link>
               <Link to="/register">
-                <Button>Sign Up</Button>
+                <Button size="sm">Sign Up</Button>
               </Link>
             </div>
           )}
 
-          {/* Mobile menu button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          {/* Mobile Actions */}
+          {user ? (
+            <div className="flex lg:hidden items-center space-x-2">
+              <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                <Bell className="h-4 w-4" />
+                <Badge className="absolute -top-1 -right-1 h-3 w-3 flex items-center justify-center text-xs p-0 bg-red-500">
+                  3
+                </Badge>
+              </Button>
+              
+              {user.role === 'customer' && (
+                <Link to="/cart" className="relative">
+                  <Button variant="ghost" size="icon" className="h-9 w-9">
+                    <ShoppingCart className="h-4 w-4" />
+                  </Button>
+                  <Badge className="absolute -top-1 -right-1 h-3 w-3 flex items-center justify-center text-xs p-0">
+                    0
+                  </Badge>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sm:hidden h-9 w-9"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
 
-        {/* Mobile Search */}
+        {/* Mobile Search - Only when logged in */}
         {user && (
-          <form onSubmit={handleSearch} className="md:hidden pb-4">
+          <form onSubmit={handleSearch} className="sm:hidden pb-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search products, shops..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-muted/50 border-0 h-9"
               />
             </div>
           </form>
         )}
 
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden border-t">
-            <div className="py-4 space-y-2">
-              {user ? (
-                <>
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      className={`
-                        flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors
-                        ${isActivePath(item.href)
-                          ? 'text-primary bg-primary/10'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                        }
-                      `}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {item.icon && <item.icon className="h-4 w-4" />}
-                      {item.name}
-                    </Link>
-                  ))}
-                  <Link
-                    to="/favorites"
-                    className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Heart className="h-4 w-4" />
-                    Favorites
-                  </Link>
-                  <Link
-                    to="/cart"
-                    className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    Cart
-                  </Link>
-                  <Link
-                    to="/profile"
-                    className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <User className="h-4 w-4" />
-                    Profile
-                  </Link>
-                  <button
-                    onClick={logout}
-                    className="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent w-full text-left"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/login"
-                    className="block px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="block px-3 py-3 text-sm font-medium text-primary hover:bg-primary/10 rounded-md"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
+        {/* Mobile Navigation - Only for non-logged in users */}
+        {mobileMenuOpen && !user && (
+          <div className="sm:hidden border-t">
+            <div className="py-3 space-y-1">
+              <Link
+                to="/login"
+                className="block px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Sign Up
+              </Link>
             </div>
           </div>
         )}
