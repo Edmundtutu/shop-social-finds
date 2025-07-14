@@ -12,7 +12,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Navbar user={user} />
       
       <div className="flex min-h-screen">
@@ -21,14 +21,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         
         {/* Main Content Area - Centered like Facebook feed */}
         <main className={`
-          flex-1 min-h-screen
+          flex-1 min-h-screen w-full
           ${user ? 'lg:ml-64 xl:ml-72' : ''} 
           ${user ? 'pb-16 lg:pb-0' : 'pb-0'}
         `}>
           {/* Content Container - Centered with max width like Facebook */}
           <div className={`
-            mx-auto px-2 sm:px-4 py-4 lg:py-6
-            ${user ? 'max-w-2xl lg:max-w-4xl xl:max-w-5xl' : 'max-w-6xl'}
+            w-full mx-auto px-2 sm:px-4 py-4 lg:py-6
+            ${user ? 'max-w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl' : 'max-w-6xl'}
           `}>
             {/* Facebook-like centered feed layout */}
             <div className={`

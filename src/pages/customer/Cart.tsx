@@ -133,45 +133,46 @@ const Cart: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="w-full max-w-none px-2 sm:max-w-4xl sm:mx-auto space-y-4 sm:space-y-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">Shopping Cart</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Shopping Cart</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">
           {cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your cart
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Cart Items */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-4">
           {cartItems.map((item) => (
             <Card key={item.id}>
-              <CardContent className="p-4">
-                <div className="flex gap-4">
-                  <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center">
-                    <div className="text-2xl">📦</div>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex gap-3 sm:gap-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="text-xl sm:text-2xl">📦</div>
                   </div>
                   
                   <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
                         <Link 
                           to={`/product/${item.product.id}`}
-                          className="font-medium hover:text-primary"
+                          className="font-medium hover:text-primary text-sm sm:text-base line-clamp-2"
                         >
                           {item.product.name}
                         </Link>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          {item.product.shop.name}
+                        <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{item.product.shop.name}</span>
                         </div>
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => removeItem(item.id)}
+                        className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </div>
                     
@@ -181,24 +182,26 @@ const Cart: React.FC = () => {
                           variant="ghost"
                           size="icon"
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="h-8 w-8 sm:h-10 sm:w-10"
                         >
-                          <Minus className="h-4 w-4" />
+                          <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
-                        <span className="px-4 py-2 min-w-[3rem] text-center">
+                        <span className="px-3 py-2 min-w-[2.5rem] text-center text-sm sm:text-base">
                           {item.quantity}
                         </span>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="h-8 w-8 sm:h-10 sm:w-10"
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
                       
                       <div className="text-right">
-                        <div className="font-medium">${(item.price * item.quantity).toFixed(2)}</div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="font-medium text-sm sm:text-base">${(item.price * item.quantity).toFixed(2)}</div>
+                        <div className="text-xs sm:text-sm text-muted-foreground">
                           ${item.price.toFixed(2)} each
                         </div>
                       </div>
@@ -220,7 +223,7 @@ const Cart: React.FC = () => {
         </div>
 
         {/* Order Summary */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Order Summary</CardTitle>

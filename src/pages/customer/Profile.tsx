@@ -51,28 +51,28 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="w-full max-w-none px-2 sm:max-w-4xl sm:mx-auto space-y-4 sm:space-y-6">
       {/* Profile Header */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center">
-              <User className="h-12 w-12 text-primary-foreground" />
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-primary rounded-full flex items-center justify-center">
+              <User className="h-10 w-10 sm:h-12 sm:w-12 text-primary-foreground" />
             </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold">{user?.name}</h1>
-              <p className="text-muted-foreground">{user?.email}</p>
-              <div className="flex items-center gap-4 mt-2">
-                <Badge variant={user?.verified ? 'default' : 'secondary'}>
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className="text-xl sm:text-2xl font-bold">{user?.name}</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">{user?.email}</p>
+              <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-4 mt-2">
+                <Badge variant={user?.verified ? 'default' : 'secondary'} className="text-xs">
                   {user?.verified ? 'Verified' : 'Unverified'}
                 </Badge>
-                <Badge variant="outline">
+                <Badge variant="outline" className="text-xs">
                   {user?.role === 'customer' ? 
                     (user?.isInfluencer ? 'Influencer' : 'Customer') : 'Vendor'}
                 </Badge>
               </div>
             </div>
-            <Button variant="outline">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               <Settings className="h-4 w-4 mr-2" />
               Edit Profile
             </Button>
@@ -81,12 +81,12 @@ const Profile: React.FC = () => {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="orders" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          <TabsTrigger value="favorites">Favorites</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+      <Tabs defaultValue="orders" className="space-y-4 sm:space-y-6">
+        <TabsList className="grid w-full grid-cols-4 h-auto">
+          <TabsTrigger value="orders" className="text-xs sm:text-sm px-2 py-2">Orders</TabsTrigger>
+          <TabsTrigger value="reviews" className="text-xs sm:text-sm px-2 py-2">Reviews</TabsTrigger>
+          <TabsTrigger value="favorites" className="text-xs sm:text-sm px-2 py-2">Favorites</TabsTrigger>
+          <TabsTrigger value="settings" className="text-xs sm:text-sm px-2 py-2">Settings</TabsTrigger>
         </TabsList>
 
         {/* Orders Tab */}
@@ -235,7 +235,7 @@ const Profile: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {favorites.map((item) => (
                 <Card key={item.id}>
                   <CardContent className="p-4">
@@ -266,7 +266,7 @@ const Profile: React.FC = () => {
               <CardTitle>Personal Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Full Name</label>
                   <p className="text-sm text-muted-foreground">{user?.name}</p>

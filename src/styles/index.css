@@ -45,6 +45,16 @@
     @apply text-xs leading-tight; 
   }
 
+  /* Hide scrollbar globally - keep content scrollable */
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Hide scrollbar for horizontal scroll */
   .scrollbar-hide {
     -ms-overflow-style: none;

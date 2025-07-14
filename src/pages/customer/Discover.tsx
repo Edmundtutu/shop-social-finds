@@ -65,7 +65,7 @@ const Discover: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="w-full space-y-4 md:space-y-6 px-1 sm:px-0">
       {/* Search Header */}
       <div className="text-center">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">Discover Products</h1>
@@ -135,7 +135,7 @@ const Discover: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {products.map((product) => (
             <Card key={product.id} className="group hover:shadow-lg transition-shadow">
               <CardContent className="p-0">

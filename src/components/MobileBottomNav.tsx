@@ -13,13 +13,20 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+}
+
 const MobileBottomNav: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
 
   if (!user) return null;
 
-  const customerNavItems = [
+  const customerNavItems: NavItem[] = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Discover', href: '/discover', icon: Search },
     { name: 'Map', href: '/map', icon: MapPin },
@@ -27,7 +34,7 @@ const MobileBottomNav: React.FC = () => {
     { name: 'Profile', href: '/profile', icon: User },
   ];
 
-  const vendorNavItems = [
+  const vendorNavItems: NavItem[] = [
     { name: 'Dashboard', href: '/vendor/dashboard', icon: BarChart3 },
     { name: 'Inventory', href: '/vendor/inventory', icon: Package },
     { name: 'Orders', href: '/vendor/orders', icon: ShoppingCart },
