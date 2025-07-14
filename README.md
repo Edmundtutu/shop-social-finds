@@ -1,73 +1,85 @@
-# Welcome to your Lovable project
-
 ## Project info
 
-**URL**: https://lovable.dev/projects/05429f9e-de5b-4fc9-930c-8d6a26b5a069
+## Feature Checklist: Social Commerce PWA
 
-## How can I edit this code?
+### Success Criteria & Current Status
 
-There are several ways of editing your application.
+- [x] **PWA installable on mobile devices with offline capability**  
+  - Uses `vite-plugin-pwa` and `workbox-window` for manifest, offline, and installability (see `vite.config.ts`).
+- [x] **Role-based authentication with smooth transitions between user types**  
+  - Role-based auth (`customer`, `vendor`, `guest`) with protected routes and context (`AuthContext`, `authService`, `AppRoutes.tsx`).
+- [~] **Real-time social feed with product discovery**  
+  - Social feed, posts, reviews, and discovery features are scaffolded (`shopService`, `Home`, `Discover`, `Product`, `Profile`), but real-time (websocket) is not yet implemented.
+- [x] **Interactive map showing nearby shops and inventory**  
+  - `ShopMap` uses `react-leaflet` and geolocation to show shops and user location.
+- [~] **Complete ordering flow from cart to fulfillment tracking**  
+  - Cart, order, and fulfillment types/services/routes exist, but some UI/API hooks are marked as TODO.
+- [x] **Vendor dashboard with inventory management and analytics**  
+  - Vendor dashboard, inventory, orders, analytics, and profile pages are present and routed.
+- [x] **Responsive design optimized for mobile-first usage**  
+  - Uses Tailwind CSS, mobile breakpoints, and responsive layouts throughout.
+- [~] **Integration-ready for Laravel Breeze backend**  
+  - API layer (`api.ts`, `authService.ts`, `shopService.ts`) is set up for `/api` endpoints, CSRF, and Laravel Sanctum, but Inertia.js integration is not yet implemented.
 
-**Use Lovable**
+Legend: [x] = Complete, [~] = Partial, [ ] = Not started
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/05429f9e-de5b-4fc9-930c-8d6a26b5a069) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## How to Integrate with Laravel 12 + Inertia.js Backend
 
-**Use your preferred IDE**
+This project is designed as a React PWA frontend, ready to connect to a Laravel backend using Inertia.js for a seamless full-stack SPA experience.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 1. **Set Up Laravel 12 Backend**
+- Install Laravel 12:  
+  [Official Docs: Installation](https://laravel.com/docs/12.x/installation)
+- Install Laravel Breeze with Inertia.js + React stack:  
+  [Breeze Docs: Inertia + React](https://laravel.com/docs/12.x/starter-kits#breeze-and-inertia)
+  ```sh
+  composer require laravel/breeze --dev
+  php artisan breeze:install react
+  npm install && npm run dev
+  php artisan migrate
+  ```
+- Configure your `.env` for database, mail, and other services as needed.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 2. **Configure Inertia.js**
+- Inertia.js allows Laravel to serve React pages as SPA views, with server-side routing and props.
+- [Inertia.js Docs: Laravel Adapter](https://inertiajs.com/server-side-setup)
+- Ensure your Laravel routes use `Inertia::render()` for pages you want React to control.
 
-Follow these steps:
+### 3. **API & Auth Integration**
+- This PWA expects `/api` endpoints for authentication, products, shops, orders, etc.
+- Use Laravel's API routes (`routes/api.php`) for backend logic.
+- Sanctum is already referenced in the frontend for CSRF/auth.  
+  [Sanctum Docs](https://laravel.com/docs/12.x/sanctum)
+- Make sure CORS is configured to allow your frontend origin.  
+  [CORS Docs](https://laravel.com/docs/12.x/sanctum#cors-and-spas)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 4. **Connect React Frontend to Laravel Backend**
+- In production, you can serve the React build (`npm run build`) as static assets from Laravel's `public/` directory, or deploy separately and set API URLs accordingly.
+- In development, use the Vite dev server and set up a proxy in `vite.config.ts`:
+  ```js
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8000',
+    }
+  }
+  ```
+- Update `API_BASE_URL` in your frontend if your API is not at `/api`.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 5. **Inertia Page Integration (Optional)**
+- If you want to use Inertia for page transitions (not just API), move your React app into Laravel's `resources/js` and let Inertia handle routing and props.
+- [Inertia.js Docs: Shared Data](https://inertiajs.com/shared-data)
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 6. **Best Practices & References**
+- Always consult the [Laravel 12.x Documentation](https://laravel.com/docs/12.x/) for up-to-date guidance.
+- For upgrades, see the [Upgrade Guide](https://laravel.com/docs/12.x/upgrade).
+- Use `^12.0` constraints in `composer.json`.
+- Backup your database and code before migrations or upgrades.
+- Run tests after integration.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/05429f9e-de5b-4fc9-930c-8d6a26b5a069) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Notes
+- This project is frontend-only and expects a Laravel backend for full functionality.
+- For any backend changes, always follow the official Laravel documentation and upgrade guides.
