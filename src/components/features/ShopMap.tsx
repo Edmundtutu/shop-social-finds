@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, } from 'react';
+import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +23,11 @@ import { Shop } from '@/types';
 import { useGeolocation } from '@/hooks/utils/useGeolocation';
 import { getShopsWithinRadius, formatDistance, reverseGeocode } from '@/utils/location';
 import ShopMarker from './ShopMarker';
+import HoverTooltip from '../HoverToolTip';
+import '@/styles/custom.css';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useNavigate } from 'react-router-dom';
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -127,6 +131,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
   showTagging = false,
   className = ""
 }) => {
+  const navigate = useNavigate();
   const { location: userLocation, error, loading, requestLocation } = useGeolocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchRadius, setSearchRadius] = useState([5]); // km
@@ -135,6 +140,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [mapStyle, setMapStyle] = useState('osm');
   const [isMobile, setIsMobile] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Default center (Your current location)
   const defaultCenter: [number, number] = [-1.268122, 29.985997];
@@ -179,9 +185,36 @@ const ShopMap: React.FC<ShopMapProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, [requestLocation]);
 
-  const handleShopSelect = (shop: Shop) => {
+  // Show tooltip on marker click
+  const handleShopMarkerClick = (shop: Shop, event: any) => {
     setSelectedShop(shop);
-    onShopSelect?.(shop);
+    // Get marker position relative to map container
+    const rect = event.target._map.getContainer().getBoundingClientRect();
+    let x, y;
+    if (event.originalEvent && event.originalEvent.touches) {
+      // Touch event
+      const touch = event.originalEvent.touches[0];
+      x = touch.clientX - rect.left;
+      y = touch.clientY - rect.top;
+    } else {
+      x = event.originalEvent.clientX - rect.left;
+      y = event.originalEvent.clientY - rect.top;
+    }
+    setTooltipPosition({ x, y });
+  };
+
+  // Close tooltip
+  const handleCloseTooltip = () => {
+    setSelectedShop(null);
+    setTooltipPosition(null);
+  };
+
+  // Navigation to parent (view shop)
+  const handleViewShop = () => {
+    if (selectedShop) {
+      navigate(`/shops/${selectedShop.id}`);
+      handleCloseTooltip();
+    }
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -232,7 +265,12 @@ const ShopMap: React.FC<ShopMapProps> = ({
               <SelectTrigger className="w-36 h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent               
+                position="popper" 
+                side="bottom" 
+                sideOffset={4}
+                style={{ zIndex: 9999 }}
+              >
                 {SHOP_CATEGORIES.map((category) => (
                   <SelectItem key={category.value} value={category.value}>
                     {category.label}
@@ -415,7 +453,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
                   key={`${mapCenter[0]}-${mapCenter[1]}-${mapStyle}`}
                   center={mapCenter}
                   zoom={isMobile ? 15 : 14}
-                  style={{ height: '100%', width: '100%' }}
+                  style={{ height: '100%', width: '100%', zIndex:1 }}
                   className="rounded-lg"
                   zoomControl={!isMobile}
                   scrollWheelZoom={true}
@@ -449,9 +487,17 @@ const ShopMap: React.FC<ShopMapProps> = ({
                     <ShopMarker
                       key={shop.id}
                       shop={shop}
-                      onShopSelect={handleShopSelect}
+                      onMarkerClick={handleShopMarkerClick}
                     />
                   ))}
+                  {/* Tooltip overlay as click-popup */}
+                  {selectedShop && tooltipPosition && (
+                    <HoverTooltip
+                      shop={selectedShop}
+                      position={tooltipPosition}
+                      isVisible={!!selectedShop}
+                    />
+                  )}
 
                   {/* Location tagging */}
                   {showTagging && onLocationTag && (
@@ -462,10 +508,9 @@ const ShopMap: React.FC<ShopMapProps> = ({
             </CardContent>
           </Card>
         </div>
-
         {/* Mobile Bottom Sheet for Selected Shop */}
-        {isMobile && selectedShop && (
-          <div className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t rounded-t-lg p-4 max-h-1/2 overflow-y-auto z-20">
+        {isMobile && selectedShop && createPortal(
+          <div className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t rounded-t-lg p-4 max-h-1/2 overflow-y-auto z-20" style={{ zIndex: 1000 }}>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-full overflow-hidden bg-muted flex-shrink-0">
                 {selectedShop.avatar ? (
@@ -535,7 +580,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
             <div className="flex gap-2">
               <Button 
                 className="flex-1"
-                onClick={() => onShopSelect?.(selectedShop)}
+                onClick={handleViewShop}
               >
                 View Shop
               </Button>
@@ -559,7 +604,8 @@ const ShopMap: React.FC<ShopMapProps> = ({
                 </Button>
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Desktop Shop Details Sidebar */}
@@ -693,7 +739,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
                         className={`flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer transition-colors ${
                           selectedShop?.id === shop.id ? 'bg-accent' : ''
                         }`}
-                        onClick={() => handleShopSelect(shop)}
+                        onClick={() => onShopSelect?.(shop)}
                       >
                         <div className="w-8 h-8 rounded-full overflow-hidden bg-muted flex-shrink-0">
                           {shop.avatar ? (

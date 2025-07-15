@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,18 @@ const Home: React.FC = () => {
   const [newPostContent, setNewPostContent] = useState('');
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if we returned from camera capture with an image
+    if (location.state && (location.state as any).capturedImage) {
+      setCapturedImage((location.state as any).capturedImage);
+      // Clear the state so it doesn't persist on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     // Simulate loading posts
@@ -45,6 +57,11 @@ const Home: React.FC = () => {
 
   const handleLikePost = (postId: string) => {
     // TODO: Like/unlike post via API
+  };
+
+  const handleCloseCreatePost = () => {
+    setShowCreatePost(false);
+    setCapturedImage(null);
   };
 
   if (isLoading) {
@@ -125,7 +142,7 @@ const Home: React.FC = () => {
                 className="flex-1 justify-start text-left h-10 bg-muted/50 hover:bg-muted"
                 onClick={() => setShowCreatePost(true)}
               >
-                <span className="text-muted-foreground">What's on your mind, {user?.name}?</span>
+                <span className="text-muted-foreground text-xs lg:text-sm">Want to share your purchases, {user?.name}?</span>
               </Button>
             </div>
           ) : (
@@ -143,15 +160,30 @@ const Home: React.FC = () => {
               </div>
               
               <Textarea
-                placeholder="What's on your mind? Share a product find, review, or shopping experience..."
+                placeholder="What's did you find intresting today? Share a product find, review, or shopping experience..."
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
                 className="min-h-[100px] border-0 resize-none text-base placeholder:text-muted-foreground focus-visible:ring-0"
               />
               
+              {/* Show captured image preview if present */}
+              {capturedImage && (
+                <div className="my-4 flex flex-col items-center">
+                  <img src={capturedImage} alt="Captured" className="max-h-64 rounded-lg border mb-2" />
+                  <Button size="sm" variant="outline" onClick={() => setCapturedImage(null)}>
+                    Remove Photo
+                  </Button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between pt-3 border-t">
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" className="text-xs lg:text-sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs lg:text-sm"
+                    onClick={() => navigate('/camera-capture')}
+                  >
                     <Camera className="h-4 w-4 mr-2" />
                     Photo
                   </Button>
@@ -164,7 +196,7 @@ const Home: React.FC = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => setShowCreatePost(false)}
+                    onClick={handleCloseCreatePost}
                   >
                     Cancel
                   </Button>
@@ -288,6 +320,6 @@ const Home: React.FC = () => {
       )}
     </div>
   );
-};
+}
 
 export default Home;

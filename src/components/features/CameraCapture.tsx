@@ -126,46 +126,46 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
             className="w-full h-full object-cover"
           />
         )}
-        
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
-      {/* Controls */}
-      <div className="p-6 bg-black/50">
-        {capturedImage ? (
-          <div className="flex gap-4 justify-center">
-            <Button variant="outline" onClick={handleRetake} className="flex-1">
-              Retake
-            </Button>
-            <Button onClick={handleConfirm} className="flex-1">
-              Use Photo
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center">
-            <div className="flex gap-4 items-center">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                className="text-white hover:bg-white/20"
-              >
-                <Upload className="h-6 w-6" />
+      {/* Controls - sticky bottom with gradient background */}
+      <div className="sticky bottom-0 left-0 w-full p-6" style={{zIndex: 10}}>
+        <div className="absolute inset-0 h-full w-full pointer-events-none" style={{background: 'linear-gradient(to top, rgba(0,0,0,0.85) 80%, rgba(0,0,0,0.2) 100%)', zIndex: 0}} />
+        <div className="relative z-10">
+          {capturedImage ? (
+            <div className="flex gap-4 justify-center">
+              <Button variant="outline" onClick={handleRetake} className="flex-1">
+                Retake
               </Button>
-              
-              <Button
-                size="lg"
-                onClick={capturePhoto}
-                className="w-16 h-16 rounded-full bg-white text-black hover:bg-gray-200"
-              >
-                <Camera className="h-8 w-8" />
+              <Button onClick={handleConfirm} className="flex-1">
+                Use Photo
               </Button>
-              
-              <div className="w-12" /> {/* Spacer */}
             </div>
-          </div>
-        )}
-        
+          ) : (
+            <div className="flex items-center justify-center">
+              <div className="flex gap-4 items-center">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-white hover:bg-white/20"
+                >
+                  <Upload className="h-6 w-6" />
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={capturePhoto}
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white text-black hover:bg-gray-200 shadow-lg border-4 border-white focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  style={{boxShadow: '0 4px 24px 0 rgba(0,0,0,0.4)'}}
+                >
+                  <Camera className="h-10 w-10 md:h-12 md:w-12" />
+                </Button>
+                <div className="w-12" /> {/* Spacer */}
+              </div>
+            </div>
+          )}
+        </div>
         <input
           ref={fileInputRef}
           type="file"

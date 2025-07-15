@@ -1,0 +1,13 @@
+/* Shop Map styles */
+[data-radix-popper-content-wrapper] {
+    z-index: 9999 !important;
+  }
+  
+  .leaflet-container {
+    z-index: 1 !important;
+  }
+  
+  .map-container {
+    position: relative;
+    z-index: 1;
+  }
