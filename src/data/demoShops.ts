@@ -1,8 +1,8 @@
 import { Shop } from '@/types';
 
-// Base location (Mbarara, Uganda)
-const BASE_LAT = -0.6069;
-const BASE_LNG = 30.6593;
+// Base location (Your current location)
+const BASE_LAT = -1.268122;
+const BASE_LNG = 29.985997;
 
 export const DEMO_SHOPS: Shop[] = [
   {

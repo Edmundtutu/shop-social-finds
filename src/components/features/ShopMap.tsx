@@ -92,8 +92,8 @@ const ShopMap: React.FC<ShopMapProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
 
-  // Default center (Mbarara, Uganda)
-  const defaultCenter: [number, number] = [-0.6069, 30.6593];
+  // Default center (Your current location)
+  const defaultCenter: [number, number] = [-1.268122, 29.985997];
   const mapCenter: [number, number] = userLocation 
     ? [userLocation.lat, userLocation.lng] 
     : defaultCenter;
@@ -212,14 +212,14 @@ const ShopMap: React.FC<ShopMapProps> = ({
       </div>
 
       {/* Map */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[500px] lg:h-[600px]">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[60vh] sm:h-[70vh] lg:h-[600px]">
+        <div className="lg:col-span-2 h-full">
           <Card className="h-full">
             <CardContent className="p-0 h-full">
               <div className="h-full rounded-lg overflow-hidden">
                 <MapContainer
                   center={mapCenter}
-                  zoom={13}
+                  zoom={14}
                   style={{ height: '100%', width: '100%' }}
                   className="rounded-lg"
                 >

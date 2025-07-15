@@ -60,8 +60,8 @@ export const useGeolocation = (): UseGeolocationReturn => {
       handleError,
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000, // 5 minutes
+        timeout: 15000,
+        maximumAge: 60000, // 1 minute for more accurate location
       }
     );
   }, [handleSuccess, handleError]);
@@ -84,8 +84,8 @@ export const useGeolocation = (): UseGeolocationReturn => {
       handleError,
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000, // 1 minute
+        timeout: 15000,
+        maximumAge: 30000, // 30 seconds for real-time tracking
       }
     );
   }, [handleSuccess, handleError]);

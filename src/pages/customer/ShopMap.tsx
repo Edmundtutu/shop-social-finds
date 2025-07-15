@@ -53,7 +53,7 @@ const ShopMapPage: React.FC = () => {
       <ShopMap
         shops={shops}
         onShopSelect={handleShopSelect}
-        className="w-full"
+        className="w-full min-h-[70vh] sm:min-h-[75vh] lg:min-h-[80vh]"
       />
     </div>
   );
