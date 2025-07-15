@@ -142,7 +142,7 @@ const Home: React.FC = () => {
                 className="flex-1 justify-start text-left h-10 bg-muted/50 hover:bg-muted"
                 onClick={() => setShowCreatePost(true)}
               >
-                <span className="text-muted-foreground text-xs lg:text-sm">Want to share your purchases, {user?.name}?</span>
+                <span className="text-muted-foreground text-xs lg:text-sm">Want to share your purchases?</span>
               </Button>
             </div>
           ) : (
