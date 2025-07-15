@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
-  Filter, 
   Star,
   MapPin,
   Heart,
@@ -14,46 +13,100 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { Product } from '@/types';
+import { useCart } from '@/context/CartContext';
+import { useToast } from '@/hooks/use-toast';
+import { DEMO_PRODUCTS } from '@/data/demoProducts';
 
 const Discover: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const { addItem } = useCart();
+  const { toast } = useToast();
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   const categories = [
     'All',
     'Electronics',
     'Fashion',
-    'Home & Garden',
-    'Sports',
+    'Food',
     'Books',
-    'Food & Drink',
+    'Sports',
     'Beauty',
-    'Toys',
-    'Automotive'
+    'Furniture',
+    'Accessories'
   ];
 
   useEffect(() => {
     // Simulate loading products
-    setIsLoading(false);
-    // TODO: Fetch actual products from API based on search and filters
-    setProducts([]);
+    const loadProducts = async () => {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        let filtered = DEMO_PRODUCTS;
+        
+        // Filter by search query
+        if (searchQuery.trim()) {
+          filtered = filtered.filter(product =>
+            product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            product.shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+          );
+        }
+        
+        // Filter by category
+        if (selectedCategory && selectedCategory !== 'All') {
+          filtered = filtered.filter(product => 
+            product.category === selectedCategory
+          );
+        }
+        
+        setProducts(filtered);
+      } catch (error) {
+        console.error('Failed to load products:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProducts();
   }, [searchQuery, selectedCategory]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement search
+    // Search is handled by the useEffect above
   };
 
-  const handleAddToCart = (productId: string) => {
-    // TODO: Add to cart via API
+  const handleAddToCart = (product: Product) => {
+    addItem(product, 1, product.shop);
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart`,
+    });
   };
 
   const handleToggleFavorite = (productId: string) => {
-    // TODO: Toggle favorite via API
+    setFavorites(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(productId)) {
+        newFavorites.delete(productId);
+        toast({
+          title: "Removed from favorites",
+          description: "Product removed from your favorites",
+        });
+      } else {
+        newFavorites.add(productId);
+        toast({
+          title: "Added to favorites",
+          description: "Product added to your favorites",
+        });
+      }
+      return newFavorites;
+    });
   };
 
   if (isLoading) {
@@ -102,20 +155,11 @@ const Discover: React.FC = () => {
         ))}
       </div>
 
-      {/* Filters and Results Count */}
+      {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-xs md:text-sm text-muted-foreground">
           {products.length} products found
         </p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => setShowFilters(!showFilters)}
-          className="text-xs md:text-sm"
-        >
-          <SlidersHorizontal className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-          Filters
-        </Button>
       </div>
 
       {/* Products Grid - Responsive */}
@@ -129,7 +173,10 @@ const Discover: React.FC = () => {
             <p className="text-muted-foreground mb-4 text-sm md:text-base">
               Try adjusting your search terms or browse different categories
             </p>
-            <Button onClick={() => setSearchQuery('')}>
+            <Button onClick={() => {
+              setSearchQuery('');
+              setSelectedCategory('');
+            }}>
               Clear Search
             </Button>
           </CardContent>
@@ -140,19 +187,31 @@ const Discover: React.FC = () => {
             <Card key={product.id} className="group hover:shadow-lg transition-shadow">
               <CardContent className="p-0">
                 <div className="relative">
-                  <div className="aspect-square bg-muted rounded-t-lg flex items-center justify-center">
-                    <div className="text-2xl md:text-4xl text-muted-foreground">📦</div>
+                  <div className="aspect-square bg-muted rounded-t-lg flex items-center justify-center overflow-hidden">
+                    {product.images?.[0] ? (
+                      <img 
+                        src={product.images[0]} 
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                    ) : (
+                      <div className="text-2xl md:text-4xl text-muted-foreground">📦</div>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-2 right-2 bg-white/80 hover:bg-white h-6 w-6 md:h-8 md:w-8"
+                    className={`absolute top-2 right-2 bg-white/80 hover:bg-white h-6 w-6 md:h-8 md:w-8 ${
+                      favorites.has(product.id) ? 'text-red-500' : ''
+                    }`}
                     onClick={(e) => {
                       e.preventDefault();
                       handleToggleFavorite(product.id);
                     }}
                   >
-                    <Heart className="h-3 w-3 md:h-4 md:w-4" />
+                    <Heart className={`h-3 w-3 md:h-4 md:w-4 ${
+                      favorites.has(product.id) ? 'fill-current' : ''
+                    }`} />
                   </Button>
                 </div>
                 
@@ -181,14 +240,17 @@ const Discover: React.FC = () => {
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-sm md:text-lg font-bold">${product.price}</span>
+                    <span className="text-sm md:text-lg font-bold">
+                      UGX {product.price.toLocaleString()}
+                    </span>
                     <Button
                       size="sm"
                       className="h-6 md:h-8 px-2 md:px-3 text-xs"
                       onClick={(e) => {
                         e.preventDefault();
-                        handleAddToCart(product.id);
+                        handleAddToCart(product);
                       }}
+                      disabled={product.stock === 0}
                     >
                       <ShoppingCart className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                       <span className="hidden md:inline">Add</span>

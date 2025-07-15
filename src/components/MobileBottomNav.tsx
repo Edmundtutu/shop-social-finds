@@ -11,6 +11,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { Badge } from '@/components/ui/badge';
 
 interface NavItem {
@@ -22,15 +23,18 @@ interface NavItem {
 
 const MobileBottomNav: React.FC = () => {
   const { user } = useAuth();
+  const { getItemCount } = useCart();
   const location = useLocation();
 
   if (!user) return null;
+
+  const cartItemCount = getItemCount();
 
   const customerNavItems: NavItem[] = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Discover', href: '/discover', icon: Search },
     { name: 'Map', href: '/map', icon: MapPin },
-    { name: 'Cart', href: '/cart', icon: ShoppingCart, badge: 0 },
+    { name: 'Cart', href: '/cart', icon: ShoppingCart, badge: cartItemCount },
     { name: 'Profile', href: '/profile', icon: User },
   ];
 
@@ -71,7 +75,7 @@ const MobileBottomNav: React.FC = () => {
                 <item.icon className={`h-6 w-6 ${isActive ? 'scale-110' : ''} transition-transform`} />
                 {item.badge !== undefined && item.badge > 0 && (
                   <Badge className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center text-xs p-0 bg-red-500">
-                    {item.badge}
+                    {item.badge > 99 ? '99+' : item.badge}
                   </Badge>
                 )}
               </div>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { User as UserType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 
 interface NavbarProps {
   user: UserType | null;
@@ -23,9 +24,12 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ user }) => {
   const { logout } = useAuth();
+  const { getItemCount } = useCart();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const cartItemCount = getItemCount();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,9 +91,11 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                     <Button variant="ghost" size="icon">
                       <ShoppingCart className="h-5 w-5" />
                     </Button>
-                    <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0">
-                      0
-                    </Badge>
+                    {cartItemCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0">
+                        {cartItemCount > 99 ? '99+' : cartItemCount}
+                      </Badge>
+                    )}
                   </Link>
                 </>
               )}
@@ -128,9 +134,11 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                   <Button variant="ghost" size="icon" className="h-9 w-9">
                     <ShoppingCart className="h-4 w-4" />
                   </Button>
-                  <Badge className="absolute -top-1 -right-1 h-3 w-3 flex items-center justify-center text-xs p-0">
-                    0
-                  </Badge>
+                  {cartItemCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-3 w-3 flex items-center justify-center text-xs p-0">
+                      {cartItemCount > 99 ? '99+' : cartItemCount}
+                    </Badge>
+                  )}
                 </Link>
               )}
             </div>

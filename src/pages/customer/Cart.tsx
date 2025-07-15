@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -13,105 +12,100 @@ import {
   Minus, 
   ShoppingBag,
   MapPin,
-  Truck
+  Truck,
+  Store
 } from 'lucide-react';
-import { CartItem } from '@/types';
+import { useCart } from '@/context/CartContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Cart: React.FC = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const {
+    items,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    getTotal,
+    getItemCount,
+    getItemsByShop,
+    canCheckout,
+  } = useCart();
+
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    // TODO: Fetch cart items from API
-    setIsLoading(false);
-    setCartItems([]);
-  }, []);
-
-  const updateQuantity = (itemId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      removeItem(itemId);
-      return;
-    }
-    
-    setCartItems(items =>
-      items.map(item =>
-        item.id === itemId
-          ? { ...item, quantity: newQuantity }
-          : item
-      )
-    );
-    // TODO: Update quantity via API
-  };
-
-  const removeItem = (itemId: string) => {
-    setCartItems(items => items.filter(item => item.id !== itemId));
-    // TODO: Remove item via API
-  };
-
-  const clearCart = () => {
-    setCartItems([]);
-    // TODO: Clear cart via API
-  };
-
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const deliveryFee = deliveryType === 'delivery' ? 5.99 : 0;
-  const total = subtotal + deliveryFee;
+  const itemsByShop = getItemsByShop();
+  const total = getTotal();
+  const itemCount = getItemCount();
+  const deliveryFee = deliveryType === 'delivery' ? 5000 : 0; // 5000 UGX
+  const finalTotal = total + deliveryFee;
 
   const handleCheckout = async () => {
-    setIsProcessing(true);
-    
-    try {
-      // Group items by shop
-      const itemsByShop = cartItems.reduce((acc, item) => {
-        const shopId = item.product.shop_id;
-        if (!acc[shopId]) {
-          acc[shopId] = [];
-        }
-        acc[shopId].push(item);
-        return acc;
-      }, {} as Record<number, CartItem[]>);
+    if (!canCheckout) return;
 
-      // Create separate orders for each shop
-      for (const [shopId, items] of Object.entries(itemsByShop)) {
+    if (deliveryType === 'delivery' && !deliveryAddress.trim()) {
+      toast({
+        title: "Delivery address required",
+        description: "Please enter your delivery address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // Simulate order creation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Create orders for each shop
+      const orderPromises = Object.entries(itemsByShop).map(async ([shopId, shopItems]) => {
         const orderData = {
-          shop_id: parseInt(shopId),
-          items: items.map(item => ({
-            product_id: item.product_id,
-            quantity: item.quantity
+          shop_id: shopId,
+          items: shopItems.map(item => ({
+            product_id: item.product.id,
+            quantity: item.quantity,
+            price: item.price,
           })),
           delivery_type: deliveryType,
           delivery_address: deliveryType === 'delivery' ? deliveryAddress : undefined,
-          notes: notes || undefined
+          notes: notes || undefined,
+          total: shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
         };
-        
-        // TODO: Create order via API
-        console.log('Creating order:', orderData);
-      }
 
-      // Clear cart after successful checkout
+        // TODO: Replace with actual API call
+        console.log('Creating order:', orderData);
+        return orderData;
+      });
+
+      await Promise.all(orderPromises);
+
+      // Clear cart and show success
       clearCart();
       
-      // TODO: Navigate to order confirmation page
+      toast({
+        title: "Orders placed successfully!",
+        description: `${Object.keys(itemsByShop).length} order(s) have been placed`,
+      });
+
+      // Navigate to orders page
+      navigate('/orders');
     } catch (error) {
       console.error('Checkout failed:', error);
+      toast({
+        title: "Checkout failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (cartItems.length === 0) {
+  if (!canCheckout) {
     return (
       <div className="max-w-2xl mx-auto">
         <Card>
@@ -133,81 +127,121 @@ const Cart: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-none px-2 sm:max-w-4xl sm:mx-auto space-y-4 sm:space-y-6">
+    <div className="w-full max-w-none px-2 sm:max-w-6xl sm:mx-auto space-y-4 sm:space-y-6">
       <div className="text-center">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Shopping Cart</h1>
         <p className="text-muted-foreground text-sm sm:text-base">
-          {cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your cart
+          {itemCount} item{itemCount !== 1 ? 's' : ''} from {Object.keys(itemsByShop).length} shop{Object.keys(itemsByShop).length !== 1 ? 's' : ''}
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Cart Items */}
-        <div className="lg:col-span-2 space-y-3 sm:space-y-4">
-          {cartItems.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex gap-3 sm:gap-4">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-                    <div className="text-xl sm:text-2xl">📦</div>
-                  </div>
-                  
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <Link 
-                          to={`/product/${item.product.id}`}
-                          className="font-medium hover:text-primary text-sm sm:text-base line-clamp-2"
-                        >
-                          {item.product.name}
-                        </Link>
-                        <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
-                          <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{item.product.shop.name}</span>
+        {/* Cart Items by Shop */}
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          {Object.entries(itemsByShop).map(([shopId, shopItems]) => (
+            <Card key={shopId}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-muted">
+                      {shopItems[0].shop.avatar ? (
+                        <img 
+                          src={shopItems[0].shop.avatar} 
+                          alt={shopItems[0].shop.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
+                          {shopItems[0].shop.name.charAt(0)}
                         </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{shopItems[0].shop.name}</h3>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Store className="h-3 w-3" />
+                        <span>{shopItems.length} item{shopItems.length !== 1 ? 's' : ''}</span>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
-                      >
-                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                      </Button>
+                    </div>
+                  </div>
+                  <Badge variant="outline">
+                    UGX {shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString()}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {shopItems.map((item) => (
+                  <div key={item.id} className="flex gap-3 sm:gap-4 p-3 rounded-lg border">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                      {item.product.images?.[0] ? (
+                        <img 
+                          src={item.product.images[0]} 
+                          alt={item.product.name}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <div className="text-xl sm:text-2xl">📦</div>
+                      )}
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <Link 
+                            to={`/product/${item.product.id}`}
+                            className="font-medium hover:text-primary text-sm sm:text-base line-clamp-2"
+                          >
+                            {item.product.name}
+                          </Link>
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-1">
+                            {item.product.description}
+                          </p>
+                        </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="h-8 w-8 sm:h-10 sm:w-10"
+                          onClick={() => removeItem(item.id)}
+                          className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 ml-2"
                         >
-                          <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                        <span className="px-3 py-2 min-w-[2.5rem] text-center text-sm sm:text-base">
-                          {item.quantity}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="h-8 w-8 sm:h-10 sm:w-10"
-                        >
-                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
                       
-                      <div className="text-right">
-                        <div className="font-medium text-sm sm:text-base">${(item.price * item.quantity).toFixed(2)}</div>
-                        <div className="text-xs sm:text-sm text-muted-foreground">
-                          ${item.price.toFixed(2)} each
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center border rounded-lg">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            className="h-8 w-8 sm:h-10 sm:w-10"
+                          >
+                            <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <span className="px-3 py-2 min-w-[2.5rem] text-center text-sm sm:text-base">
+                            {item.quantity}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="h-8 w-8 sm:h-10 sm:w-10"
+                          >
+                            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="text-right">
+                          <div className="font-medium text-sm sm:text-base">
+                            UGX {(item.price * item.quantity).toLocaleString()}
+                          </div>
+                          <div className="text-xs sm:text-sm text-muted-foreground">
+                            UGX {item.price.toLocaleString()} each
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
           ))}
@@ -230,21 +264,21 @@ const Cart: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>Subtotal ({itemCount} items)</span>
+                <span>UGX {total.toLocaleString()}</span>
               </div>
               
               {deliveryType === 'delivery' && (
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
-                  <span>${deliveryFee.toFixed(2)}</span>
+                  <span>UGX {deliveryFee.toLocaleString()}</span>
                 </div>
               )}
               
               <div className="border-t pt-4">
                 <div className="flex justify-between font-medium text-lg">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>UGX {finalTotal.toLocaleString()}</span>
                 </div>
               </div>
             </CardContent>
@@ -267,7 +301,7 @@ const Cart: React.FC = () => {
                   <RadioGroupItem value="delivery" id="delivery" />
                   <Label htmlFor="delivery" className="flex items-center gap-2">
                     <Truck className="h-4 w-4" />
-                    Delivery ($5.99)
+                    Delivery (UGX {deliveryFee.toLocaleString()})
                   </Label>
                 </div>
               </RadioGroup>
@@ -300,7 +334,7 @@ const Cart: React.FC = () => {
                 onClick={handleCheckout}
                 disabled={isProcessing || (deliveryType === 'delivery' && !deliveryAddress.trim())}
               >
-                {isProcessing ? 'Processing...' : `Checkout - $${total.toFixed(2)}`}
+                {isProcessing ? 'Processing...' : `Checkout - UGX ${finalTotal.toLocaleString()}`}
               </Button>
             </CardContent>
           </Card>
