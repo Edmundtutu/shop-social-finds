@@ -36,6 +36,18 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Load images from localStorage on component mount
+  useEffect(() => {
+    const savedImages = localStorage.getItem('capturedImages');
+    if (savedImages) {
+      setCapturedImages(JSON.parse(savedImages));
+    }
+  }, []);
+
+  // Save images to localStorage whenever capturedImages changes
+  useEffect(() => {
+    localStorage.setItem('capturedImages', JSON.stringify(capturedImages));
+  }, [capturedImages]);
 
   useEffect(() => {
     // Handle captured image from camera page
@@ -83,6 +95,7 @@ const Home: React.FC = () => {
     
     setNewPostContent('');
     setCapturedImages([]);
+    localStorage.removeItem('capturedImages');
     setShowCreatePost(false);
   };
 
@@ -93,6 +106,7 @@ const Home: React.FC = () => {
   const handleCloseCreatePost = () => {
     setShowCreatePost(false);
     setCapturedImages([]);
+    localStorage.removeItem('capturedImages');
     setNewPostContent('');
   };
 
@@ -202,9 +216,9 @@ const Home: React.FC = () => {
               {capturedImages.length > 0 && (
                 <div className="my-4">
                   <Carousel className="w-full max-w-full">
-                    <CarouselContent className="-ml-2 md:-ml-4">
+                    <CarouselContent className="-ml-1">
                       {capturedImages.map((image, index) => (
-                        <CarouselItem key={index} className="pl-2 md:pl-4 basis-4/5 md:basis-3/5">
+                        <CarouselItem key={index} className="pl-1 basis-4/5 md:basis-3/5">
                           <div className="relative group">
                             <div className="relative aspect-square max-h-80">
                               <img 
