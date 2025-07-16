@@ -19,4 +19,4 @@ const CameraCapturePage: React.FC = () => {
   );
 };
 
-export default CameraCapturePage; 
+export default CameraCapturePage;

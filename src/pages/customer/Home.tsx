@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import CameraCapture from '@/components/features/CameraCapture';
 import { 
   Heart, 
   MessageCircle, 
@@ -18,7 +20,9 @@ import {
   TrendingUp,
   Users,
   Store,
-  MoreHorizontal
+  MoreHorizontal,
+  X,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Post, Product } from '@/types';
@@ -28,19 +32,13 @@ const Home: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [showCameraCapture, setShowCameraCapture] = useState(false);
+  const [capturedImages, setCapturedImages] = useState<string[]>([]);
+  const [imageCaptions, setImageCaptions] = useState<string[]>(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(true);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    // Check if we returned from camera capture with an image
-    if (location.state && (location.state as any).capturedImage) {
-      setCapturedImage((location.state as any).capturedImage);
-      // Clear the state so it doesn't persist on refresh
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
 
   useEffect(() => {
     // Simulate loading posts
@@ -49,9 +47,48 @@ const Home: React.FC = () => {
     setPosts([]);
   }, []);
 
+  const handleCameraCapture = (imageData: string) => {
+    if (capturedImages.length < 4) {
+      setCapturedImages(prev => [...prev, imageData]);
+    }
+    setShowCameraCapture(false);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      Array.from(files).slice(0, 4 - capturedImages.length).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          setCapturedImages(prev => [...prev, result]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setCapturedImages(prev => prev.filter((_, i) => i !== index));
+    setImageCaptions(prev => prev.map((caption, i) => i === index ? '' : caption));
+  };
+
+  const updateCaption = (index: number, caption: string) => {
+    setImageCaptions(prev => prev.map((c, i) => i === index ? caption : c));
+  };
   const handleCreatePost = () => {
-    // TODO: Create post via API
+    // TODO: Create post via API with images and captions
+    const postData = {
+      content: newPostContent,
+      images: capturedImages,
+      captions: imageCaptions.slice(0, capturedImages.length),
+      hashtags: ['#InstaDaily', '#PhotoDump', '#LifeInTiles', '#CapturedMoments', '#EverydayVibes']
+    };
+    console.log('Creating post:', postData);
+    
     setNewPostContent('');
+    setCapturedImages([]);
+    setImageCaptions(['', '', '', '']);
     setShowCreatePost(false);
   };
 
@@ -61,7 +98,9 @@ const Home: React.FC = () => {
 
   const handleCloseCreatePost = () => {
     setShowCreatePost(false);
-    setCapturedImage(null);
+    setCapturedImages([]);
+    setImageCaptions(['', '', '', '']);
+    setNewPostContent('');
   };
 
   if (isLoading) {
@@ -160,33 +199,104 @@ const Home: React.FC = () => {
               </div>
               
               <Textarea
-                placeholder="What's did you find intresting today? Share a product find, review, or shopping experience..."
+                placeholder="What did you find interesting today? Share a product find, review, or shopping experience..."
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
                 className="min-h-[100px] border-0 resize-none text-base placeholder:text-muted-foreground focus-visible:ring-0"
               />
               
-              {/* Show captured image preview if present */}
-              {capturedImage && (
-                <div className="my-4 flex flex-col items-center">
-                  <img src={capturedImage} alt="Captured" className="max-h-64 rounded-lg border mb-2" />
-                  <Button size="sm" variant="outline" onClick={() => setCapturedImage(null)}>
-                    Remove Photo
-                  </Button>
+              {/* Photo Grid Preview */}
+              {capturedImages.length > 0 && (
+                <div className="my-4">
+                  <div className={`grid gap-2 ${
+                    capturedImages.length === 1 ? 'grid-cols-1' :
+                    capturedImages.length === 2 ? 'grid-cols-2' :
+                    'grid-cols-2'
+                  }`}>
+                    {capturedImages.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <img 
+                          src={image} 
+                          alt={`Captured ${index + 1}`} 
+                          className="w-full h-32 object-cover rounded-lg border"
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                        <Input
+                          placeholder="Add caption..."
+                          value={imageCaptions[index]}
+                          onChange={(e) => updateCaption(index, e.target.value)}
+                          className="mt-1 h-8 text-xs"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Suggested Hashtags */}
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {['#InstaDaily', '#PhotoDump', '#LifeInTiles', '#CapturedMoments', '#EverydayVibes'].map(tag => (
+                      <Button
+                        key={tag}
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs px-2"
+                        onClick={() => setNewPostContent(prev => prev + ' ' + tag)}
+                      >
+                        {tag}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               )}
 
               <div className="flex items-center justify-between pt-3 border-t">
                 <div className="flex gap-2">
+                  <Dialog open={showCameraCapture} onOpenChange={setShowCameraCapture}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-xs lg:text-sm"
+                        disabled={capturedImages.length >= 4}
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Camera ({capturedImages.length}/4)
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="p-0 max-w-full max-h-full border-0">
+                      <CameraCapture 
+                        onCapture={handleCameraCapture}
+                        onClose={() => setShowCameraCapture(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="photo-upload"
+                    disabled={capturedImages.length >= 4}
+                  />
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     className="text-xs lg:text-sm"
-                    onClick={() => navigate('/camera-capture')}
+                    onClick={() => document.getElementById('photo-upload')?.click()}
+                    disabled={capturedImages.length >= 4}
                   >
-                    <Camera className="h-4 w-4 mr-2" />
-                    Photo
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Upload ({capturedImages.length}/4)
                   </Button>
+                  
                   <Button variant="ghost" size="sm" className="text-xs lg:text-sm">
                     <MapPin className="h-4 w-4 mr-2" />
                     Tag Shop
@@ -203,7 +313,7 @@ const Home: React.FC = () => {
                   <Button 
                     size="sm"
                     onClick={handleCreatePost} 
-                    disabled={!newPostContent.trim()}
+                    disabled={!newPostContent.trim() && capturedImages.length === 0}
                   >
                     Post
                   </Button>

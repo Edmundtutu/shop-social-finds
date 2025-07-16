@@ -22,6 +22,8 @@ export interface Post {
   user: AuthUser;
   content: string;
   images: string[];
+  captions?: string[];
+  hashtags?: string[];
   product_id?: string;
   product?: Product;
   shop_id?: string;
