@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import CameraCapture from '@/components/features/CameraCapture';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { 
   Heart, 
   MessageCircle, 
@@ -32,26 +31,28 @@ const Home: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [showCameraCapture, setShowCameraCapture] = useState(false);
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
-  const [imageCaptions, setImageCaptions] = useState<string[]>(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
 
   useEffect(() => {
+    // Handle captured image from camera page
+    if (location.state?.capturedImage) {
+      setCapturedImages(prev => [...prev, location.state.capturedImage]);
+      // Clear the state to prevent re-adding
+      navigate(location.pathname, { replace: true });
+    }
+    
     // Simulate loading posts
     setIsLoading(false);
     // TODO: Fetch actual posts from API
     setPosts([]);
-  }, []);
+  }, [location.state, navigate, location.pathname]);
 
-  const handleCameraCapture = (imageData: string) => {
-    if (capturedImages.length < 4) {
-      setCapturedImages(prev => [...prev, imageData]);
-    }
-    setShowCameraCapture(false);
+  const handleCameraNavigation = () => {
+    navigate('/camera-capture');
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,25 +71,18 @@ const Home: React.FC = () => {
 
   const removeImage = (index: number) => {
     setCapturedImages(prev => prev.filter((_, i) => i !== index));
-    setImageCaptions(prev => prev.map((caption, i) => i === index ? '' : caption));
-  };
-
-  const updateCaption = (index: number, caption: string) => {
-    setImageCaptions(prev => prev.map((c, i) => i === index ? caption : c));
   };
   const handleCreatePost = () => {
-    // TODO: Create post via API with images and captions
+    // TODO: Create post via API with images
     const postData = {
       content: newPostContent,
       images: capturedImages,
-      captions: imageCaptions.slice(0, capturedImages.length),
       hashtags: ['#InstaDaily', '#PhotoDump', '#LifeInTiles', '#CapturedMoments', '#EverydayVibes']
     };
     console.log('Creating post:', postData);
     
     setNewPostContent('');
     setCapturedImages([]);
-    setImageCaptions(['', '', '', '']);
     setShowCreatePost(false);
   };
 
@@ -99,7 +93,6 @@ const Home: React.FC = () => {
   const handleCloseCreatePost = () => {
     setShowCreatePost(false);
     setCapturedImages([]);
-    setImageCaptions(['', '', '', '']);
     setNewPostContent('');
   };
 
@@ -205,38 +198,60 @@ const Home: React.FC = () => {
                 className="min-h-[100px] border-0 resize-none text-base placeholder:text-muted-foreground focus-visible:ring-0"
               />
               
-              {/* Photo Grid Preview */}
+              {/* Photo Carousel Preview */}
               {capturedImages.length > 0 && (
                 <div className="my-4">
-                  <div className={`grid gap-2 ${
-                    capturedImages.length === 1 ? 'grid-cols-1' :
-                    capturedImages.length === 2 ? 'grid-cols-2' :
-                    'grid-cols-2'
-                  }`}>
-                    {capturedImages.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img 
-                          src={image} 
-                          alt={`Captured ${index + 1}`} 
-                          className="w-full h-32 object-cover rounded-lg border"
-                        />
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removeImage(index)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                        <Input
-                          placeholder="Add caption..."
-                          value={imageCaptions[index]}
-                          onChange={(e) => updateCaption(index, e.target.value)}
-                          className="mt-1 h-8 text-xs"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  <Carousel className="w-full max-w-full">
+                    <CarouselContent className="-ml-2 md:-ml-4">
+                      {capturedImages.map((image, index) => (
+                        <CarouselItem key={index} className="pl-2 md:pl-4 basis-4/5 md:basis-3/5">
+                          <div className="relative group">
+                            <div className="relative aspect-square max-h-80">
+                              <img 
+                                src={image} 
+                                alt={`Captured ${index + 1}`} 
+                                className="w-full h-full object-cover rounded-lg border"
+                                style={{
+                                  aspectRatio: 'auto'
+                                }}
+                                onLoad={(e) => {
+                                  const img = e.target as HTMLImageElement;
+                                  const container = img.parentElement;
+                                  if (container) {
+                                    const isLandscape = img.naturalWidth > img.naturalHeight;
+                                    if (isLandscape) {
+                                      container.style.aspectRatio = '4/3';
+                                    } else {
+                                      container.style.aspectRatio = '3/4';
+                                    }
+                                  }
+                                }}
+                              />
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 hover:bg-destructive/80"
+                                onClick={() => removeImage(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                              
+                              {/* Image counter */}
+                              <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                                {index + 1} / {capturedImages.length}
+                              </div>
+                            </div>
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    {capturedImages.length > 1 && (
+                      <>
+                        <CarouselPrevious className="left-2" />
+                        <CarouselNext className="right-2" />
+                      </>
+                    )}
+                  </Carousel>
                   
                   {/* Suggested Hashtags */}
                   <div className="mt-3 flex flex-wrap gap-1">
@@ -257,25 +272,16 @@ const Home: React.FC = () => {
 
               <div className="flex items-center justify-between pt-3 border-t">
                 <div className="flex gap-2">
-                  <Dialog open={showCameraCapture} onOpenChange={setShowCameraCapture}>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-xs lg:text-sm"
-                        disabled={capturedImages.length >= 4}
-                      >
-                        <Camera className="h-4 w-4 mr-2" />
-                        Camera ({capturedImages.length}/4)
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="p-0 max-w-full max-h-full border-0">
-                      <CameraCapture 
-                        onCapture={handleCameraCapture}
-                        onClose={() => setShowCameraCapture(false)}
-                      />
-                    </DialogContent>
-                  </Dialog>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs lg:text-sm"
+                    disabled={capturedImages.length >= 4}
+                    onClick={handleCameraNavigation}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Camera ({capturedImages.length}/4)
+                  </Button>
                   
                   <input
                     type="file"

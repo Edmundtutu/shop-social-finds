@@ -130,11 +130,7 @@ const AppRoutes: React.FC = () => {
       } />
 
       {/* Full-Screen Camera Capture Route */}
-      <Route path="/camera-capture" element={
-        <ProtectedRoute requiredRole={['customer']} layout="main">
-          <CameraCapturePage />
-        </ProtectedRoute>
-      } />
+      <Route path="/camera-capture" element={<CameraCapturePage />} />
 
       {/* Vendor Routes */}
       <Route path="/vendor/dashboard" element={

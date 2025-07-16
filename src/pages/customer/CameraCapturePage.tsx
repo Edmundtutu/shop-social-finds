@@ -15,7 +15,9 @@ const CameraCapturePage: React.FC = () => {
   };
 
   return (
-    <CameraCapture onCapture={handleCapture} onClose={handleClose} />
+    <div className="min-h-screen bg-background">
+      <CameraCapture onCapture={handleCapture} onClose={handleClose} />
+    </div>
   );
 };
 

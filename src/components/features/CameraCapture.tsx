@@ -91,7 +91,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    <div className="absolute inset-0 bg-black flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center p-4 bg-black/50 text-white">
         <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
