@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Post, Product } from '@/types';
+import CameraCapture from '@/components/features/CameraCapture';
 
 const Home: React.FC = () => {
   const { user } = useAuth();
@@ -33,38 +34,24 @@ const Home: React.FC = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCameraModal, setShowCameraModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Load images from localStorage on component mount
   useEffect(() => {
-    const savedImages = localStorage.getItem('capturedImages');
-    if (savedImages) {
-      setCapturedImages(JSON.parse(savedImages));
-    }
-  }, []);
-
-  // Save images to localStorage whenever capturedImages changes
-  useEffect(() => {
-    localStorage.setItem('capturedImages', JSON.stringify(capturedImages));
-  }, [capturedImages]);
-
-  useEffect(() => {
-    // Handle captured image from camera page
-    if (location.state?.capturedImage) {
-      setCapturedImages(prev => [...prev, location.state.capturedImage]);
-      // Clear the state to prevent re-adding
-      navigate(location.pathname, { replace: true });
-    }
-    
     // Simulate loading posts
     setIsLoading(false);
     // TODO: Fetch actual posts from API
     setPosts([]);
-  }, [location.state, navigate, location.pathname]);
+  }, []);
 
-  const handleCameraNavigation = () => {
-    navigate('/camera-capture');
+  const handleCameraCapture = (imageData: string) => {
+    setCapturedImages(prev => [...prev, imageData]);
+    setShowCameraModal(false);
+  };
+
+  const handleCameraClose = () => {
+    setShowCameraModal(false);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,7 +82,6 @@ const Home: React.FC = () => {
     
     setNewPostContent('');
     setCapturedImages([]);
-    localStorage.removeItem('capturedImages');
     setShowCreatePost(false);
   };
 
@@ -106,7 +92,6 @@ const Home: React.FC = () => {
   const handleCloseCreatePost = () => {
     setShowCreatePost(false);
     setCapturedImages([]);
-    localStorage.removeItem('capturedImages');
     setNewPostContent('');
   };
 
@@ -291,7 +276,7 @@ const Home: React.FC = () => {
                     size="sm" 
                     className="text-xs lg:text-sm"
                     disabled={capturedImages.length >= 4}
-                    onClick={handleCameraNavigation}
+                    onClick={() => setShowCameraModal(true)}
                   >
                     <Camera className="h-4 w-4 mr-2" />
                     Camera ({capturedImages.length}/4)
@@ -343,6 +328,16 @@ const Home: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Full-Page Camera Modal */}
+      {showCameraModal && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <CameraCapture 
+            onCapture={handleCameraCapture} 
+            onClose={handleCameraClose} 
+          />
+        </div>
+      )}
 
       {/* Feed */}
       {posts.length === 0 ? (

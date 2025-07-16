@@ -19,7 +19,7 @@ import ShopMap from '@/pages/customer/ShopMap';
 import Cart from '@/pages/customer/Cart';
 import Profile from '@/pages/customer/Profile';
 import ShopDetails from '@/pages/shops/[shopId]';
-import CameraCapturePage from '@/pages/customer/CameraCapturePage';
+
 
 // Vendor Pages
 import VendorDashboard from '@/pages/vendor/Dashboard';
@@ -129,8 +129,6 @@ const AppRoutes: React.FC = () => {
         </ProtectedRoute>
       } />
 
-      {/* Full-Screen Camera Capture Route */}
-      <Route path="/camera-capture" element={<CameraCapturePage />} />
 
       {/* Vendor Routes */}
       <Route path="/vendor/dashboard" element={
