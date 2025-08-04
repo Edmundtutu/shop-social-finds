@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Models\Follow;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
@@ -89,26 +91,29 @@ class User extends Authenticatable
     }
 
     /**
-     * The users that follow the current user.
+     * Get all followers of this user (users who follow this user).
      */
-    public function followers(): BelongsToMany
+    public function followers(): MorphToMany
     {
-        return $this->belongsToMany(User::class, 'follows', 'following_id', 'follower_id');
+        return $this->morphToMany(User::class, 'followable', 'follows');
     }
 
     /**
-     * The users that the current user follows.
+     * Get all users and shops that this user follows.
      */
-    public function following(): BelongsToMany
+    public function following(): HasMany
     {
-        return $this->belongsToMany(User::class, 'follows', 'follower_id', 'following_id');
+        return $this->hasMany(Follow::class, 'user_id');
     }
 
     /**
-     * Check if the current user is following another user.
+     * Check if the current user is following another user or shop.
      */
-    public function isFollowing(User $user): bool
+    public function isFollowing($followable): bool
     {
-        return $this->following()->where('following_id', $user->id)->exists();
+        return $this->following()
+            ->where('followable_id', $followable->id)
+            ->where('followable_type', get_class($followable))
+            ->exists();
     }
 }

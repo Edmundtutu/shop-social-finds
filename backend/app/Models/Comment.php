@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Comment extends Model
 {
@@ -18,8 +19,9 @@ class Comment extends Model
      */
     protected $fillable = [
         'user_id',
-        'post_id',
-        'content',
+        'commentable_id',
+        'commentable_type',
+        'body',
     ];
 
     /**
@@ -31,10 +33,10 @@ class Comment extends Model
     }
 
     /**
-     * Get the post that the comment belongs to.
+     * Get the commentable model (post or product).
      */
-    public function post(): BelongsTo
+    public function commentable(): MorphTo
     {
-        return $this->belongsTo(Post::class);
+        return $this->morphTo();
     }
 }

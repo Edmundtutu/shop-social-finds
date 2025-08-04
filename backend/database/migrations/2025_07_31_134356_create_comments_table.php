@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('comments', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignUlid('post_id')->constrained('posts')->cascadeOnDelete();
-            $table->text('content');
+            $table->ulidMorphs('commentable'); // This creates commentable_id and commentable_type
+            $table->text('body');
             $table->timestamps();
         });
     }

@@ -44,4 +44,9 @@ class Product extends Model
     {
         return $this->hasMany(Post::class);
     }
+
+    public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
 }

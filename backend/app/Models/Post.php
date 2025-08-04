@@ -40,9 +40,9 @@ class Post extends Model
         return $this->belongsTo(Shop::class);
     }
 
-    public function comments(): HasMany
+    public function comments(): MorphMany
     {
-        return $this->hasMany(Comment::class);
+        return $this->morphMany(Comment::class, 'commentable');
     }
 
     public function likes(): MorphMany
