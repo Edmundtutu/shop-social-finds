@@ -17,6 +17,7 @@ return new class extends Migration
             $table->ulidMorphs('commentable'); // This creates commentable_id and commentable_type
             $table->text('body');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

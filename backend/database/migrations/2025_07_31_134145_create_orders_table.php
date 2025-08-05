@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('delivery_address')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

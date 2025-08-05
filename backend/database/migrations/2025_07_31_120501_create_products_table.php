@@ -22,6 +22,7 @@ return new class extends Migration
             $table->integer('stock');
             $table->json('tags')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

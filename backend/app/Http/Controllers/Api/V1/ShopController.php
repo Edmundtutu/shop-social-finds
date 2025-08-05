@@ -16,7 +16,22 @@ class ShopController extends Controller
      */
     public function index()
     {
-        return ShopResource::collection(Shop::paginate(10));
+                $query = Shop::query();
+
+        // Handle search
+        if (request('search')) {
+            $query->where('name', 'like', '%' . request('search') . '%');
+        }
+
+        // Handle location filtering
+        if (request()->has(['lat', 'lng', 'radius'])) {
+            $query->whereRaw(
+                'ST_Distance_Sphere(point(lng, lat), point(?, ?)) <= ?',
+                [request('lng'), request('lat'), request('radius') * 1000] // radius in meters
+            );
+        }
+
+        return ShopResource::collection($query->paginate());
     }
 
     /**

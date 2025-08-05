@@ -21,6 +21,7 @@ use App\Policies\Api\V1\ShopPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\DB;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -35,8 +36,26 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+        public function boot(): void
     {
+        if (DB::connection() instanceof \Illuminate\Database\SQLiteConnection) {
+            DB::connection()->getPdo()->sqliteCreateFunction('ST_Distance_Sphere', function ($lng1, $lat1, $lng2, $lat2) {
+                $earthRadius = 6371000; // meters
+
+                $latFrom = deg2rad($lat1);
+                $lonFrom = deg2rad($lng1);
+                $latTo = deg2rad($lat2);
+                $lonTo = deg2rad($lng2);
+
+                $lonDelta = $lonTo - $lonFrom;
+                $a = pow(cos($latTo) * sin($lonDelta), 2) +
+                     pow(cos($latFrom) * sin($latTo) - sin($latFrom) * cos($latTo) * cos($lonDelta), 2);
+                $b = sin($latFrom) * sin($latTo) + cos($latFrom) * cos($latTo) * cos($lonDelta);
+
+                $angle = atan2(sqrt($a), $b);
+                return $angle * $earthRadius;
+            });
+        }
         ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
             return config('app.frontend_url')."/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
         });

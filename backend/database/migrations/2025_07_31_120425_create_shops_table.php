@@ -25,6 +25,7 @@ return new class extends Migration
             $table->json('hours')->nullable();
             $table->boolean('verified')->default(false);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
