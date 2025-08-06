@@ -1,14 +1,13 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AuthUser, AuthState, RegisterData } from '@/types/auth';
-import { TEST_USERS, TEST_CREDENTIALS } from '@/types/test-data';
 import { INFLUENCER_THRESHOLD } from '@/utils/constants';
+import { authService } from '@/services/authService';
+import api from '@/services/api';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  loginAsGuest: () => void;
-  updateUser: (user: AuthUser) => void;
 }
 
 type AuthAction =
@@ -56,17 +55,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
-    const initAuth = () => {
-      // Check for stored user session
-      const storedUser = localStorage.getItem('auth-user');
-      if (storedUser) {
+    const initAuth = async () => {
+      const token = localStorage.getItem('auth-token');
+      
+      if (token) {
         try {
-          const user = JSON.parse(storedUser);
-          // Recalculate influencer status based on current threshold
-          user.isInfluencer = user.followers >= INFLUENCER_THRESHOLD;
-          dispatch({ type: 'SET_USER', payload: user });
+          // Set the Authorization header for the stored token
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          // Validate the token by fetching user data
+          const user = await authService.me();
+          
+          // Calculate influencer status
+          const authUser: AuthUser = {
+            ...user,
+            isInfluencer: (user.followers || 0) >= INFLUENCER_THRESHOLD,
+            createdAt: user.createdAt ? new Date(user.createdAt) : new Date()
+          };
+          
+          // Update stored user data
+          localStorage.setItem('auth-user', JSON.stringify(authUser));
+          dispatch({ type: 'SET_USER', payload: authUser });
         } catch (error) {
+          // Token is invalid, clear everything
           localStorage.removeItem('auth-user');
+          localStorage.removeItem('auth-token');
+          delete api.defaults.headers.common['Authorization'];
           dispatch({ type: 'SET_USER', payload: null });
         }
       } else {
@@ -80,18 +94,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      // Check test credentials
-      if (TEST_CREDENTIALS[email as keyof typeof TEST_CREDENTIALS] === password) {
-        const testUser = Object.values(TEST_USERS).find(user => user.email === email);
-        if (testUser) {
-          localStorage.setItem('auth-user', JSON.stringify(testUser));
-          dispatch({ type: 'SET_USER', payload: testUser });
-          return;
-        }
-      }
+      const response = await authService.login(email, password);
+      const { user, access_token } = response;
       
-      // TODO: Replace with actual API call
-      throw new Error('Invalid credentials');
+      // Store token and user data
+      localStorage.setItem('auth-token', access_token);
+      localStorage.setItem('auth-user', JSON.stringify(user));
+      
+      // Set Authorization header for future requests
+      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      
+      // Calculate influencer status
+      const authUser: AuthUser = {
+        ...user,
+        isInfluencer: user.followers >= INFLUENCER_THRESHOLD,
+        createdAt: user.createdAt ? new Date(user.createdAt) : new Date()
+      };
+      
+      dispatch({ type: 'SET_USER', payload: authUser });
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       throw error;
@@ -101,21 +121,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (data: RegisterData) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      // TODO: Replace with actual API call
-      const newUser: AuthUser = {
-        id: `user-${Date.now()}`,
-        email: data.email,
-        name: data.name,
-        role: data.role || 'customer',
-        followers: 0,
-        following: 0,
-        isInfluencer: false,
-        verified: false,
-        createdAt: new Date(),
+      const response = await authService.register(data);
+      const { user, access_token } = response;
+      
+      // Store token and user data
+      localStorage.setItem('auth-token', access_token);
+      localStorage.setItem('auth-user', JSON.stringify(user));
+      
+      // Set Authorization header for future requests
+      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      
+      // Calculate influencer status
+      const authUser: AuthUser = {
+        ...user,
+        isInfluencer: user.followers >= INFLUENCER_THRESHOLD,
+        createdAt: user.createdAt ? new Date(user.createdAt) : new Date()
       };
       
-      localStorage.setItem('auth-user', JSON.stringify(newUser));
-      dispatch({ type: 'SET_USER', payload: newUser });
+      dispatch({ type: 'SET_USER', payload: authUser });
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
       throw error;
@@ -124,31 +147,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      localStorage.removeItem('auth-user');
-      dispatch({ type: 'LOGOUT' });
+      await authService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout API error:', error);
+    } finally {
+      // Always clear local storage and logout regardless of API call result
+      localStorage.removeItem('auth-user');
+      localStorage.removeItem('auth-token');
+      delete api.defaults.headers.common['Authorization'];
       dispatch({ type: 'LOGOUT' });
     }
   };
 
-  const loginAsGuest = () => {
-    dispatch({ type: 'SET_USER', payload: TEST_USERS.guest });
-  };
 
-  const updateUser = (user: AuthUser) => {
-    // Recalculate influencer status
-    const updatedUser = {
-      ...user,
-      isInfluencer: user.followers >= INFLUENCER_THRESHOLD,
-    };
-    
-    if (updatedUser.role !== 'guest') {
-      localStorage.setItem('auth-user', JSON.stringify(updatedUser));
-    }
-    
-    dispatch({ type: 'SET_USER', payload: updatedUser });
-  };
 
   return (
     <AuthContext.Provider
@@ -157,8 +168,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
-        loginAsGuest,
-        updateUser,
       }}
     >
       {children}

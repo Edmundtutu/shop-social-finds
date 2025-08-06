@@ -1,7 +1,8 @@
 import axios from 'axios';
 
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL:  import.meta.env.VITE_API_BASE_URL, 
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -10,17 +11,48 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Helper function to get CSRF token from cookie
+const getCsrfTokenFromCookie = (): string | null => {
+  const name = 'XSRF-TOKEN=';
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const cookies = decodedCookie.split(';');
+  
+  for (let cookie of cookies) {
+    cookie = cookie.trim();
+    if (cookie.indexOf(name) === 0) {
+      return cookie.substring(name.length);
+    }
+  }
+  return null;
+};
+
+// Track if we've already fetched CSRF token
+let csrfTokenFetched = false;
+
 // Request interceptor for CSRF token
 api.interceptors.request.use(
   async (config) => {
-    // Get CSRF token for Laravel Sanctum
-    if (!document.querySelector('meta[name="csrf-token"]')) {
-      await axios.get('/sanctum/csrf-cookie');
-    }
+    // Only fetch CSRF token once and for state-changing methods
+    const needsCsrf = ['post', 'put', 'patch', 'delete'].includes(
+      config.method?.toLowerCase() || ''
+    );
     
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (token) {
-      config.headers['X-CSRF-TOKEN'] = token;
+    if (needsCsrf && !csrfTokenFetched) {
+      try {
+        // Use the same api instance to get CSRF cookie
+        await api.get('/sanctum/csrf-cookie');
+        csrfTokenFetched = true;
+      } catch (error) {
+        console.error('Failed to fetch CSRF token:', error);
+      }
+    }
+
+    // Get CSRF token from cookie and add to headers
+    if (needsCsrf) {
+      const csrfToken = getCsrfTokenFromCookie();
+      if (csrfToken) {
+        config.headers['X-XSRF-TOKEN'] = csrfToken;
+      }
     }
 
     return config;
@@ -34,10 +66,18 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Reset CSRF token flag on 419 (CSRF token mismatch)
+    if (error.response?.status === 419) {
+      csrfTokenFetched = false;
+    }
+    
     if (error.response?.status === 401) {
+      // Clear any stored auth data
+      localStorage.removeItem('auth_token');
       // Redirect to login if unauthorized
       window.location.href = '/login';
     }
+    
     return Promise.reject(error);
   }
 );

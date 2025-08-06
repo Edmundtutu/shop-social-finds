@@ -1,6 +1,7 @@
 import api from './api';
 import { User, ApiResponse } from '@/types';
 
+const apiVersion = import.meta.env.VITE_API_VERSION;
 interface LoginCredentials {
   email: string;
   password: string;
@@ -15,23 +16,29 @@ interface RegisterData {
 }
 
 export const authService = {
-  async login(email: string, password: string): Promise<User> {
-    const response = await api.post<ApiResponse<User>>('/login', { email, password });
-    return response.data.data;
+  async login(email: string, password: string): Promise<{ user: User; access_token: string }> {
+    const response = await api.post(`${apiVersion}/login`, { email, password });
+    return {
+      user: response.data.user,
+      access_token: response.data.access_token
+    };
   },
 
-  async register(data: RegisterData): Promise<User> {
-    const response = await api.post<ApiResponse<User>>('/register', data);
-    return response.data.data;
+  async register(data: RegisterData): Promise<{ user: User; access_token: string }> {
+    const response = await api.post(`${apiVersion}/register`, data);
+    return {
+      user: response.data.user,
+      access_token: response.data.access_token
+    };
   },
 
   async logout(): Promise<void> {
-    await api.post('/logout');
+    await api.post(`${apiVersion}/logout`);
   },
 
   async me(): Promise<User> {
-    const response = await api.get<ApiResponse<User>>('/user');
-    return response.data.data;
+    const response = await api.get(`${apiVersion}/user`);
+    return response.data;
   },
 
   async forgotPassword(email: string): Promise<void> {
