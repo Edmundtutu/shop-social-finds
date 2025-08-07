@@ -32,8 +32,10 @@ Route::prefix('v1')->group(function () {
     // Post routes
     Route::apiResource('posts', PostController::class)->only(['index', 'show']);
     Route::apiResource('posts', PostController::class)->middleware('auth:sanctum')->except(['index', 'show']);
+    Route::post('/posts/{post}/like', [PostController::class, 'likeOrUnlike'])->middleware('auth:sanctum');
 
     // Order routes
+    Route::apiResource('posts.comments', PostCommentController::class)->middleware('auth:sanctum');
     Route::apiResource('orders', OrderController::class);
 
     // Review routes

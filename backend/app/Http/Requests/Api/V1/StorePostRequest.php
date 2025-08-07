@@ -25,7 +25,8 @@ class StorePostRequest extends FormRequest
             'product_id' => 'nullable|ulid|exists:products,id',
             'shop_id' => 'nullable|ulid|exists:shops,id',
             'content' => 'required|string',
-            'images' => 'nullable|json',
+            'images' => 'nullable|array|max:4',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ];
     }
 }

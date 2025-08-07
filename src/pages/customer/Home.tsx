@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +24,9 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import PostItem from '@/components/PostItem'; // Import PostItem
+import { postService } from '@/services/postService';
 import { Post, Product } from '@/types';
 import CameraCapture from '@/components/features/CameraCapture';
 
@@ -33,17 +36,14 @@ const Home: React.FC = () => {
   const [newPostContent, setNewPostContent] = useState('');
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    // Simulate loading posts
-    setIsLoading(false);
-    // TODO: Fetch actual posts from API
-    setPosts([]);
-  }, []);
+  const { data: postsData, isLoading, error } = useQuery({
+    queryKey: ['posts'],
+    queryFn: postService.getPosts,
+  });
 
   const handleCameraCapture = (imageData: string) => {
     setCapturedImages(prev => [...prev, imageData]);
@@ -100,6 +100,13 @@ const Home: React.FC = () => {
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
+    );
+  }
+
+  if (error) {
+    console.error("Error fetching posts:", error);
+    return (
+      <div className="text-center text-destructive py-12">Failed to load posts. Please try again later.</div>
     );
   }
 
@@ -340,7 +347,8 @@ const Home: React.FC = () => {
       )}
 
       {/* Feed */}
-      {posts.length === 0 ? (
+      {/* Use postsData directly from useQuery */}
+      {!postsData || postsData.length === 0 ? (
         <Card className="shadow-sm">
           <CardContent className="p-8 lg:p-12 text-center">
             <div className="w-16 h-16 lg:w-20 lg:h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -362,83 +370,17 @@ const Home: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-4 lg:space-y-6">
-          {posts.map((post) => (
-            <Card key={post.id} className="shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {post.user.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm lg:text-base truncate">{post.user.name}</p>
-                      <p className="text-xs lg:text-sm text-muted-foreground">
-                        {new Date(post.created_at).toLocaleDateString()} • Public
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="pt-0">
-                <p className="mb-4 text-sm lg:text-base leading-relaxed">{post.content}</p>
-                
-                {post.product && (
-                  <Link to={`/product/${post.product.id}`}>
-                    <Card className="mb-4 hover:shadow-md transition-shadow border-l-4 border-l-primary">
-                      <CardContent className="p-4">
-                        <div className="flex gap-4">
-                          <div className="w-16 h-16 lg:w-20 lg:h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Package className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm lg:text-base truncate">{post.product.name}</h4>
-                            <p className="text-xs lg:text-sm text-muted-foreground truncate mb-2">
-                              {post.product.shop.name}
-                            </p>
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center">
-                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                <span className="text-sm ml-1">{post.product.rating}</span>
-                              </div>
-                              <span className="text-lg font-bold text-primary">
-                                ${post.product.price}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                )}
-                
-                <div className="flex items-center justify-between pt-3 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleLikePost(post.id)}
-                    className={`${post.liked_by_user ? 'text-red-500 hover:text-red-600' : ''}`}
-                  >
-                    <Heart className={`h-4 w-4 mr-2 ${post.liked_by_user ? 'fill-current' : ''}`} />
-                    {post.likes_count} {post.likes_count === 1 ? 'Like' : 'Likes'}
-                  </Button>
-                  
-                  <Button variant="ghost" size="sm">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    {post.comments_count} {post.comments_count === 1 ? 'Comment' : 'Comments'}
-                  </Button>
-                  
-                  <Button variant="ghost" size="sm">
-                    <Share className="h-4 w-4 mr-2" />
-                    Share
-                  </Button>
-                </div>
-              </CardContent>
+          {postsData.map((post) => ( // Use postsData here
+            <PostItem key={post.id} post={post} /> // Use PostItem component
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Home;
+
             </Card>
           ))}
         </div>
