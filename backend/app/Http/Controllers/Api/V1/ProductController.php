@@ -5,15 +5,22 @@ namespace App\Http\Controllers\Api\V1;
 use App\Models\Shop;
 use App\Models\Product;
 use App\Http\Controllers\Controller;
+use App\Http\Filters\V1\ProductFilter;
+use Illuminate\Support\Facades\Request;
 use App\Http\Resources\Api\V1\ProductResource;
 use App\Http\Requests\Api\V1\StoreProductRequest;
 use App\Http\Requests\Api\V1\UpdateProductRequest;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return ProductResource::collection(Product::paginate(10));
+        $filter = new ProductFilter();
+        $fitered_request = $filter->transform($request);
+
+        $products = Product::where($fitered_request)->paginate(10);
+
+        return ProductResource::collection($products);
     }
 
     public function store(StoreProductRequest $request)

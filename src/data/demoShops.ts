@@ -10,9 +10,9 @@ export const DEMO_SHOPS: Shop[] = [
     name: 'Urban Electronics',
     description: 'Latest gadgets and electronics',
     location: {
-      lat: BASE_LAT + 0.001,
-      lng: BASE_LNG + 0.001,
-      address: '123 Main St, Mbarara'
+      lat: BASE_LAT + 0.002,
+      lng: BASE_LNG + 0.003,
+      address: 'Independence Park, Mbarara'
     },
     avatar: 'https://images.pexels.com/photos/325229/pexels-photo-325229.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
     cover_image: 'https://images.pexels.com/photos/325229/pexels-photo-325229.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&fit=crop',
@@ -40,9 +40,9 @@ export const DEMO_SHOPS: Shop[] = [
     name: 'Fashion Hub',
     description: 'Trendy clothes and accessories',
     location: {
-      lat: BASE_LAT - 0.002,
-      lng: BASE_LNG + 0.003,
-      address: '456 Fashion Ave, Mbarara'
+      lat: BASE_LAT + 0.004,
+      lng: BASE_LNG + 0.001,
+      address: 'Mbarara University of Science and Technology, Mbarara'
     },
     avatar: 'https://images.pexels.com/photos/1040945/pexels-photo-1040945.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
     cover_image: 'https://images.pexels.com/photos/1040945/pexels-photo-1040945.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&fit=crop',
@@ -70,9 +70,9 @@ export const DEMO_SHOPS: Shop[] = [
     name: 'Fresh Market',
     description: 'Organic fruits and vegetables',
     location: {
-      lat: BASE_LAT + 0.003,
-      lng: BASE_LNG - 0.001,
-      address: '789 Market St, Mbarara'
+      lat: BASE_LAT + 0.001,
+      lng: BASE_LNG - 0.002,
+      address: 'Mbarara Central Market, Mbarara'
     },
     avatar: 'https://images.pexels.com/photos/1300972/pexels-photo-1300972.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
     cover_image: 'https://images.pexels.com/photos/1300972/pexels-photo-1300972.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&fit=crop',
@@ -100,9 +100,9 @@ export const DEMO_SHOPS: Shop[] = [
     name: 'Book Corner',
     description: 'Books, stationery, and educational materials',
     location: {
-      lat: BASE_LAT - 0.001,
-      lng: BASE_LNG - 0.002,
-      address: '321 University Rd, Mbarara'
+      lat: BASE_LAT - 0.003,
+      lng: BASE_LNG - 0.001,
+      address: 'Mbarara Regional Referral Hospital, Mbarara'
     },
     avatar: 'https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
     cover_image: 'https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&fit=crop',
@@ -130,9 +130,9 @@ export const DEMO_SHOPS: Shop[] = [
     name: 'Sports Zone',
     description: 'Sports equipment and fitness gear',
     location: {
-      lat: BASE_LAT + 0.002,
-      lng: BASE_LNG + 0.002,
-      address: '654 Sports Ave, Mbarara'
+      lat: BASE_LAT + 0.005,
+      lng: BASE_LNG - 0.003,
+      address: 'Agip Motel Area, Mbarara'
     },
     avatar: 'https://images.pexels.com/photos/863988/pexels-photo-863988.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
     cover_image: 'https://images.pexels.com/photos/863988/pexels-photo-863988.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&fit=crop',
@@ -160,9 +160,9 @@ export const DEMO_SHOPS: Shop[] = [
     name: 'Beauty Palace',
     description: 'Cosmetics and beauty products',
     location: {
-      lat: BASE_LAT - 0.003,
-      lng: BASE_LNG + 0.001,
-      address: '987 Beauty Blvd, Mbarara'
+      lat: BASE_LAT - 0.004,
+      lng: BASE_LNG + 0.004,
+      address: 'High Street, Mbarara'
     },
     avatar: 'https://images.pexels.com/photos/3373736/pexels-photo-3373736.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
     cover_image: 'https://images.pexels.com/photos/3373736/pexels-photo-3373736.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&fit=crop',
@@ -190,9 +190,9 @@ export const DEMO_SHOPS: Shop[] = [
     name: 'Home & Garden',
     description: 'Furniture and home improvement',
     location: {
-      lat: BASE_LAT + 0.004,
-      lng: BASE_LNG - 0.003,
-      address: '147 Home St, Mbarara'
+      lat: BASE_LAT + 0.003,
+      lng: BASE_LNG - 0.004,
+      address: 'Boma Grounds, Mbarara'
     },
     avatar: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
     cover_image: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&fit=crop',

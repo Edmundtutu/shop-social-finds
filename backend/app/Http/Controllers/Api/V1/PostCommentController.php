@@ -37,7 +37,7 @@ class PostCommentController extends Controller
         ]);
 
         $data = [
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
             'body' => $request->input('body')
         ];
 
