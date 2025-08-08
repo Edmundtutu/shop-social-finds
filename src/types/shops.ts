@@ -39,8 +39,13 @@ export interface Comment {
   id: string;
   user_id: string;
   user: AuthUser;
-  post_id: string;
-  content: string;
+  body: string;
+  parent_id?: string;
+  depth: number;
+  likes_count: number;
+  replies_count: number;
+  liked_by_user: boolean;
+  replies?: Comment[];
   created_at: string;
   updated_at: string;
 }

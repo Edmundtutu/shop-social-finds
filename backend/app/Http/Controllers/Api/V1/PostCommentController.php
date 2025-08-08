@@ -1,4 +1,3 @@
-php
 <?php
 
 namespace App\Http\Controllers\Api\V1;
@@ -18,7 +17,13 @@ class PostCommentController extends Controller
      */
     public function index(Post $post)
     {
-        return CommentResource::collection($post->comments()->with('user')->latest()->paginate(10));
+        return CommentResource::collection(
+            $post->comments()
+                ->whereNull('parent_id') // Only top-level comments
+                ->with(['user', 'replies.user', 'replies.replies.user', 'likes'])
+                ->latest()
+                ->paginate(10)
+        );
     }
 
     /**
@@ -26,14 +31,27 @@ class PostCommentController extends Controller
      */
     public function store(Request $request, Post $post)
     {
-        $request->validate(['body' => 'required|string']);
-
-        $comment = $post->comments()->create([
-            'user_id' => auth()->id(),
-            'body' => $request->input('body')
+        $request->validate([
+            'body' => 'required|string',
+            'parent_id' => 'nullable|ulid|exists:comments,id'
         ]);
 
-        return response()->json(new CommentResource($comment->load('user')), 201);
+        $data = [
+            'user_id' => auth()->id(),
+            'body' => $request->input('body')
+        ];
+
+        if ($request->has('parent_id')) {
+            $parentComment = Comment::find($request->input('parent_id'));
+            if ($parentComment && $parentComment->commentable_id === $post->getKey()) {
+                $data['parent_id'] = $parentComment->getKey();
+                $data['depth'] = $parentComment->depth + 1;
+            }
+        }
+
+        $comment = $post->comments()->create($data);
+
+        return response()->json(new CommentResource($comment->load(['user', 'replies', 'likes'])), 201);
     }
 
     /**
@@ -42,7 +60,7 @@ class PostCommentController extends Controller
     public function destroy(Post $post, Comment $comment)
     {
         // Ensure the comment belongs to the post
-        if ($comment->commentable_id !== $post->id || $comment->commentable_type !== Post::class) {
+        if ($comment->commentable_id !== $post->getKey() || $comment->commentable_type !== Post::class) {
             abort(404, 'Comment not found on this post.');
         }
 

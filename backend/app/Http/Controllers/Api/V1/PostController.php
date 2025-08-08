@@ -22,7 +22,7 @@ class PostController extends Controller
     {
         $this->authorize('create', Post::class);
 
-        $post = Post::create(array_merge($request->validated(), ['user_id' => auth()->id()]));
+        $post = Post::create(array_merge($request->validated(), ['user_id' => Auth::id()]));
 
         if ($request->hasFile('images')) {
             $imagePaths = [];

@@ -17,11 +17,14 @@ class PostFactory extends Factory
      */
     public function definition(): array
     {
-                $images = [];
-        if ($this->faker->boolean(40)) { // 40% chance of having images
+        $images = []; 
+
+        if ($this->faker->boolean(60)) { // 40% chance of having images
             $imageCount = $this->faker->numberBetween(1, 3);
+
             for ($i = 0; $i < $imageCount; $i++) {
-                $images[] = $this->faker->imageUrl(600, 400, 'social');
+                // Use random images from Lorem Picsum
+                $images[] = 'https://picsum.photos/seed/' . $this->faker->uuid . '/600/400';
             }
         }
 

@@ -2,14 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\LikeController;
 use App\Http\Controllers\Api\V1\PostController;
 use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\FollowController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\CommentController;
-use App\Http\Controllers\Api\V1\LikeController;
-use App\Http\Controllers\Api\V1\FollowController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\PostCommentController;
+use App\Http\Controllers\Api\V1\CommentLikeController;
 
 Route::prefix('v1')->group(function () {
     // Authentication routes
@@ -43,6 +45,9 @@ Route::prefix('v1')->group(function () {
 
     // Comment routes
     Route::apiResource('comments', CommentController::class);
+
+    // Comment like routes
+    Route::post('/comments/{comment}/like', [CommentLikeController::class, 'toggle'])->middleware('auth:sanctum');
 
     // Like routes
     Route::post('likes', [LikeController::class, 'store']);

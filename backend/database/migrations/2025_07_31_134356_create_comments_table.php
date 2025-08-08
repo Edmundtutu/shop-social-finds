@@ -16,8 +16,11 @@ return new class extends Migration
             $table->foreignUlid('user_id')->constrained('users')->cascadeOnDelete();
             $table->ulidMorphs('commentable'); // This creates commentable_id and commentable_type
             $table->text('body');
+            $table->foreignUlid('parent_id')->nullable()->constrained('comments')->cascadeOnDelete();
+            $table->integer('depth')->default(0);
             $table->timestamps();
             $table->softDeletes();
+            $table->index(['commentable_id', 'commentable_type', 'parent_id']);
         });
     }
 

@@ -8,8 +8,9 @@ export * from './test-data';
 
 // Re-export main types for convenience
 export type { AuthUser as User } from './auth';
-export type { Shop } from './products';
+export type { Shop } from './shops';
 export type { Product } from './products';
+export type { Post, Comment } from './shops';
 
 // Influencer threshold constant
 export const INFLUENCER_THRESHOLD = 1000;
