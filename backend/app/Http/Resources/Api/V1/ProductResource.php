@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use Illuminate\Http\Request;
+use App\Http\Resources\Api\V1\ShopResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ProductResource extends JsonResource
@@ -18,13 +19,16 @@ class ProductResource extends JsonResource
             'id' => $this->id,
             'shop_id' => $this->shop_id,
             'name' => $this->name,
-            'description' => $this->description,
+            'description' => $this->description ?? '', // Ensure description is not null
             'price' => $this->price,
             'stock' => $this->stock,
             'images' => $this->images,
+            'category' => $this->category, // Ensure category is included
             'tags' => $this->tags,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'rating' => $this->whenLoaded('reviews', fn () => round($this->reviews->avg('rating'), 1), 0), // Calculate rating
+            'total_reviews' => $this->whenLoaded('reviews', fn () => $this->reviews->count(), 0), // Calculate total reviews
+            'shop' => new ShopResource($this->whenLoaded('shop')), // Include shop resource when loaded
+            // 'created_at' and 'updated_at' are generally not needed in API lists unless specifically requested
         ];
     }
 }

@@ -1,0 +1,18 @@
+php
+<?php
+namespace App\Http\Filters\V1;
+
+use App\Http\Filter\ApiFilter;
+
+class ProductFilter extends ApiFilter{
+    protected $allowed_params = [
+        'name' => ['eq', 'like'],
+        'description' => ['eq', 'like'],
+        'price' => ['eq', 'btw', 'not_btw','gt','lt','gte','lte','ne','in', 'not_in'],
+        'stock' => ['eq', 'btw', 'not_btw','gt','lt','gte','lte','ne','in', 'not_in'],
+        'tags' => ['eq', 'like'],
+        'category' => ['eq'], // Add this line
+    ];
+
+    protected $column_map = [];
+}

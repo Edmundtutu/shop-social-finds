@@ -7,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
   Star,
-  MapPin,
+ MapPin,
   Heart,
   ShoppingCart,
   SlidersHorizontal
+} from 'lucide-react';
 } from 'lucide-react';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
@@ -18,15 +19,16 @@ import { useToast } from '@/hooks/use-toast';
 import { DEMO_PRODUCTS } from '@/data/demoProducts';
 
 const Discover: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const { addItem } = useCart();
-  const { toast } = useToast();
-  
-  const [products, setProducts] = useState<Product[]>([]);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+ import { useQuery } from '@tanstack/react-query';
+ import productService from '@/services/productService';
+ const [searchParams] = useSearchParams();
+ const { addItem } = useCart();
+ const { toast } = useToast();
+
+ const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+ const [selectedCategory, setSelectedCategory] = useState('');
+ const [page, setPage] = useState(1); // State for pagination
+ const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   const categories = [
     'All',
@@ -40,41 +42,12 @@ const Discover: React.FC = () => {
     'Accessories'
   ];
 
-  useEffect(() => {
-    // Simulate loading products
-    const loadProducts = async () => {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        let filtered = DEMO_PRODUCTS;
-        
-        // Filter by search query
-        if (searchQuery.trim()) {
-          filtered = filtered.filter(product =>
-            product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-          );
-        }
-        
-        // Filter by category
-        if (selectedCategory && selectedCategory !== 'All') {
-          filtered = filtered.filter(product => 
-            product.category === selectedCategory
-          );
-        }
-        
-        setProducts(filtered);
-      } catch (error) {
-        console.error('Failed to load products:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const { data: productsResponse, isLoading, error } = useQuery({
+    queryKey: ['products', searchQuery, selectedCategory, page],
+    queryFn: () => productService.getProducts({ search: searchQuery, category: selectedCategory, page }),
+    keepPreviousData: true, // Keep previous data while fetching next page
+  });
 
-    loadProducts();
-  }, [searchQuery, selectedCategory]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +81,16 @@ const Discover: React.FC = () => {
       return newFavorites;
     });
   };
+
+  // Determine products to display
+  const productsToDisplay = productsResponse?.data || [];
+  const totalProducts = productsResponse?.meta.total ?? 0;
+
+  if (error) {
+    return <div className="text-center text-red-500">Error loading products.</div>;
+  }
+
+
 
   if (isLoading) {
     return (
