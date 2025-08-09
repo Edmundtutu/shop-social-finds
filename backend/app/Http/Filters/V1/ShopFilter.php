@@ -2,7 +2,7 @@
 
 namespace App\Http\Filters\V1;
 
-use App\Http\Filter\ApiFilter;
+use App\Http\Filters\ApiFilter;
 
 class ShopFilter extends ApiFilter{
     protected $allowed_params = [

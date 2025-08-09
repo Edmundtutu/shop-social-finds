@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,28 +7,28 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
   Star,
- MapPin,
+  MapPin,
   Heart,
   ShoppingCart,
   SlidersHorizontal
 } from 'lucide-react';
-} from 'lucide-react';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
-import { DEMO_PRODUCTS } from '@/data/demoProducts';
+ import { useQuery } from '@tanstack/react-query';
+ import { productService } from '@/services/productService';
+ import { useFavorites } from '@/context/FavoritesContext';
+ import ProductCard from '@/components/ProductCard';
 
 const Discover: React.FC = () => {
- import { useQuery } from '@tanstack/react-query';
- import productService from '@/services/productService';
  const [searchParams] = useSearchParams();
  const { addItem } = useCart();
+ const { toggleProductFavorite, isProductFavorited } = useFavorites();
  const { toast } = useToast();
 
  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
  const [selectedCategory, setSelectedCategory] = useState('');
- const [page, setPage] = useState(1); // State for pagination
- const [favorites, setFavorites] = useState<Set<string>>(new Set());
+ const [page, setPage] = useState(1);
 
   const categories = [
     'All',
@@ -45,9 +45,8 @@ const Discover: React.FC = () => {
   const { data: productsResponse, isLoading, error } = useQuery({
     queryKey: ['products', searchQuery, selectedCategory, page],
     queryFn: () => productService.getProducts({ search: searchQuery, category: selectedCategory, page }),
-    keepPreviousData: true, // Keep previous data while fetching next page
+    staleTime: 30_000,
   });
-
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,42 +61,23 @@ const Discover: React.FC = () => {
     });
   };
 
-  const handleToggleFavorite = (productId: string) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(productId)) {
-        newFavorites.delete(productId);
-        toast({
-          title: "Removed from favorites",
-          description: "Product removed from your favorites",
-        });
-      } else {
-        newFavorites.add(productId);
-        toast({
-          title: "Added to favorites",
-          description: "Product added to your favorites",
-        });
-      }
-      return newFavorites;
+  const handleToggleFavorite = (product: Product) => {
+    const wasFavorited = isProductFavorited(product.id);
+    toggleProductFavorite(product);
+    toast({
+      title: wasFavorited ? 'Removed from favorites' : 'Added to favorites',
+      description: wasFavorited ? 'Product removed from your favorites' : 'Product added to your favorites',
     });
   };
 
   // Determine products to display
-  const productsToDisplay = productsResponse?.data || [];
-  const totalProducts = productsResponse?.meta.total ?? 0;
+  const productsToDisplay: Product[] = (productsResponse as any)?.data || [];
+  const totalProducts = (productsResponse as any)?.total ?? 0;
+  const currentPage = (productsResponse as any)?.current_page ?? 1;
+  const lastPage = (productsResponse as any)?.last_page ?? 1;
 
   if (error) {
     return <div className="text-center text-red-500">Error loading products.</div>;
-  }
-
-
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
   }
 
   return (
@@ -141,120 +121,57 @@ const Discover: React.FC = () => {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-xs md:text-sm text-muted-foreground">
-          {products.length} products found
+          {totalProducts} products found
         </p>
       </div>
 
-      {/* Products Grid - Responsive */}
-      {products.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 md:p-8 text-center">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">No products found</h3>
-            <p className="text-muted-foreground mb-4 text-sm md:text-base">
-              Try adjusting your search terms or browse different categories
-            </p>
-            <Button onClick={() => {
-              setSearchQuery('');
-              setSelectedCategory('');
-            }}>
-              Clear Search
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-          {products.map((product) => (
-            <Card key={product.id} className="group hover:shadow-lg transition-shadow">
-              <CardContent className="p-0">
-                <div className="relative">
-                  <div className="aspect-square bg-muted rounded-t-lg flex items-center justify-center overflow-hidden">
-                    {product.images?.[0] ? (
-                      <img 
-                        src={product.images[0]} 
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                      />
-                    ) : (
-                      <div className="text-2xl md:text-4xl text-muted-foreground">📦</div>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`absolute top-2 right-2 bg-white/80 hover:bg-white h-6 w-6 md:h-8 md:w-8 ${
-                      favorites.has(product.id) ? 'text-red-500' : ''
-                    }`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleToggleFavorite(product.id);
-                    }}
-                  >
-                    <Heart className={`h-3 w-3 md:h-4 md:w-4 ${
-                      favorites.has(product.id) ? 'fill-current' : ''
-                    }`} />
-                  </Button>
+      {/* Loading Spinner - Only shows in content area */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
+
+      {/* Products Grid - Responsive with better large screen handling */}
+      {!isLoading && (
+        <>
+          {productsToDisplay.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 md:p-8 text-center">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
                 </div>
-                
-                <div className="p-3 md:p-4">
-                  <Link to={`/product/${product.id}`}>
-                    <h3 className="font-medium text-sm md:text-base line-clamp-2 group-hover:text-primary transition-colors mb-1">
-                      {product.name}
-                    </h3>
-                  </Link>
-                  
-                  <div className="flex items-center gap-1 md:gap-2 mb-2">
-                    <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                    <span className="text-xs md:text-sm text-muted-foreground truncate">
-                      {product.shop.name}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3">
-                    <div className="flex items-center">
-                      <Star className="h-3 w-3 md:h-4 md:w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-xs md:text-sm ml-1">{product.rating}</span>
-                      <span className="text-xs text-muted-foreground ml-1 hidden md:inline">
-                        ({product.total_reviews})
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm md:text-lg font-bold">
-                      UGX {product.price.toLocaleString()}
-                    </span>
-                    <Button
-                      size="sm"
-                      className="h-6 md:h-8 px-2 md:px-3 text-xs"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleAddToCart(product);
-                      }}
-                      disabled={product.stock === 0}
-                    >
-                      <ShoppingCart className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                      <span className="hidden md:inline">Add</span>
-                    </Button>
-                  </div>
-                  
-                  {product.stock < 5 && product.stock > 0 && (
-                    <Badge variant="destructive" className="mt-2 text-xs">
-                      Only {product.stock} left
-                    </Badge>
-                  )}
-                  
-                  {product.stock === 0 && (
-                    <Badge variant="secondary" className="mt-2 text-xs">
-                      Out of stock
-                    </Badge>
-                  )}
-                </div>
+                <h3 className="text-lg font-medium mb-2">No products found</h3>
+                <p className="text-muted-foreground mb-4 text-sm md:text-base">
+                  Try adjusting your search terms or browse different categories
+                </p>
+                <Button onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('');
+                }}>
+                  Clear Search
+                </Button>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 max-w-7xl mx-auto">
+              {productsToDisplay.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {!isLoading && lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+            Previous
+          </Button>
+          <span className="text-xs text-muted-foreground">Page {currentPage} of {lastPage}</span>
+          <Button variant="outline" size="sm" disabled={currentPage >= lastPage} onClick={() => setPage((p) => p + 1)}>
+            Next
+          </Button>
         </div>
       )}
     </div>

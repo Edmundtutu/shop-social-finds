@@ -14,6 +14,9 @@ import {
   Minus
 } from 'lucide-react';
 import { Product, Review } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { productService } from '@/services/productService';
+import { useFavorites } from '@/context/FavoritesContext';
 
 const ProductPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,24 +24,47 @@ const ProductPage: React.FC = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFavorited, setIsFavorited] = useState(false);
+  const { isProductFavorited, toggleProductFavorite } = useFavorites();
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [showReviewForm, setShowReviewForm] = useState(false);
 
+  const { data: productData, isLoading: loadingProduct } = useQuery({
+    enabled: !!id,
+    queryKey: ['product', id],
+    queryFn: () => productService.getProduct(id as string),
+    staleTime: 30_000,
+  });
+
+  const { data: productReviews, isLoading: loadingReviews } = useQuery({
+    enabled: !!id,
+    queryKey: ['productReviews', id],
+    queryFn: () => productService.getProductReviews(id as string),
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
-    if (id) {
-      // TODO: Fetch product and reviews from API
-      setIsLoading(false);
+    if (productData) {
+      setProduct(productData as Product);
     }
-  }, [id]);
+  }, [productData]);
+
+  useEffect(() => {
+    if (productReviews) {
+      setReviews(productReviews as Review[]);
+    }
+  }, [productReviews]);
+
+  useEffect(() => {
+    setIsLoading(loadingProduct || loadingReviews);
+  }, [loadingProduct, loadingReviews]);
 
   const handleAddToCart = () => {
     // TODO: Add to cart via API
   };
 
   const handleToggleFavorite = () => {
-    setIsFavorited(!isFavorited);
-    // TODO: Toggle favorite via API
+    if (!product) return;
+    toggleProductFavorite(product);
   };
 
   const handleSubmitReview = () => {
@@ -76,16 +102,22 @@ const ProductPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Product Images */}
         <div className="space-y-4">
-          <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-            <div className="text-6xl">📦</div>
+          <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+            {product.images?.[0] ? (
+              <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="text-6xl">📦</div>
+            )}
           </div>
-          <div className="grid grid-cols-4 gap-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="aspect-square bg-muted rounded-lg flex items-center justify-center cursor-pointer">
-                <div className="text-2xl">📦</div>
-              </div>
-            ))}
-          </div>
+          {product.images?.length ? (
+            <div className="grid grid-cols-4 gap-2">
+              {product.images.slice(0, 4).map((img, i) => (
+                <div key={i} className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden cursor-pointer">
+                  <img src={img} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {/* Product Info */}
@@ -121,7 +153,7 @@ const ProductPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="text-3xl font-bold">${product.price}</div>
+          <div className="text-3xl font-bold">UGX {product.price.toLocaleString()}</div>
 
           {product.description && (
             <div>
@@ -165,12 +197,8 @@ const ProductPage: React.FC = () => {
               <ShoppingCart className="h-5 w-5 mr-2" />
               Add to Cart
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleToggleFavorite}
-            >
-              <Heart className={`h-5 w-5 ${isFavorited ? 'fill-current text-red-500' : ''}`} />
+            <Button variant="outline" size="lg" onClick={handleToggleFavorite}>
+              <Heart className={`h-5 w-5 ${product && isProductFavorited(product.id) ? 'fill-current text-red-500' : ''}`} />
             </Button>
             <Button variant="outline" size="lg">
               <Share className="h-5 w-5" />

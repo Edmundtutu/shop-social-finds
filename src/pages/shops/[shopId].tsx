@@ -1,20 +1,41 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DEMO_SHOPS } from '@/data/demoShops';
-import { DEMO_PRODUCTS } from '@/data/demoProducts';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star, MapPin, Phone, ArrowLeft } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { shopService } from '@/services/shopService';
+import { Product, Shop } from '@/types';
 
 const ShopDetails: React.FC = () => {
   const { shopId } = useParams<{ shopId: string }>();
   const navigate = useNavigate();
 
-  // Find shop by id
-  const shop = DEMO_SHOPS.find((s) => String(s.id) === shopId);
-  // Find products for this shop
-  const products = DEMO_PRODUCTS.filter((p) => String(p.shop_id) === shopId);
+  const { data: shop, isLoading: loadingShop } = useQuery({
+    enabled: !!shopId,
+    queryKey: ['shop', shopId],
+    queryFn: () => shopService.getShop(Number(shopId)),
+    staleTime: 30_000,
+  });
+
+  const { data: products, isLoading: loadingProducts } = useQuery({
+    enabled: !!shopId,
+    queryKey: ['shopProducts', shopId],
+    queryFn: async () => {
+      const response = await shopService.getShopProducts(Number(shopId));
+      return response;
+    },
+    staleTime: 30_000,
+  });
+
+  if (loadingShop) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   if (!shop) {
     return (
@@ -48,24 +69,30 @@ const ShopDetails: React.FC = () => {
           <div className="flex-1 min-w-0 text-center md:text-left">
             <h2 className="text-2xl font-bold mb-1">{shop.name}</h2>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
-              <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-base font-medium">{shop.rating}</span>
-                <span className="text-xs text-muted-foreground">({shop.total_reviews})</span>
-              </div>
-              <Badge variant={shop.verified ? 'default' : 'secondary'} className="text-xs">
-                {shop.verified ? 'Verified' : 'Unverified'}
-              </Badge>
+              {typeof (shop as any).rating !== 'undefined' && (
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <span className="text-base font-medium">{(shop as any).rating}</span>
+                  <span className="text-xs text-muted-foreground">({(shop as any).total_reviews})</span>
+                </div>
+              )}
+              {'verified' in shop && (
+                <Badge variant={(shop as any).verified ? 'default' : 'secondary'} className="text-xs">
+                  {(shop as any).verified ? 'Verified' : 'Unverified'}
+                </Badge>
+              )}
             </div>
             <div className="flex flex-col gap-1 items-center md:items-start">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>{shop.location.address}</span>
-              </div>
-              {shop.phone && (
+              {'address' in shop && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                  <span>{(shop as any).address}</span>
+                </div>
+              )}
+              {'phone' in shop && (shop as any).phone && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Phone className="h-4 w-4" />
-                  <a href={`tel:${shop.phone}`} className="hover:underline text-primary">{shop.phone}</a>
+                  <a href={`tel:${(shop as any).phone}`} className="hover:underline text-primary">{(shop as any).phone}</a>
                 </div>
               )}
             </div>
@@ -77,11 +104,16 @@ const ShopDetails: React.FC = () => {
       </Card>
       {/* Products List */}
       <h3 className="text-xl font-semibold mb-4">Products</h3>
+      {loadingProducts ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {products.length === 0 ? (
+        {(products as Product[] | undefined)?.length === 0 ? (
           <div className="col-span-full text-center text-muted-foreground py-8">No products found for this shop.</div>
         ) : (
-          products.map((product) => (
+          (products as Product[] | undefined)?.map((product) => (
             <Card key={product.id} className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col flex-1">
                 <div className="w-full h-40 bg-muted rounded-lg mb-3 overflow-hidden flex items-center justify-center">
@@ -94,7 +126,7 @@ const ShopDetails: React.FC = () => {
                 <h4 className="font-semibold text-lg mb-1 truncate">{product.name}</h4>
                 <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
                 <div className="mt-auto flex items-center justify-between">
-                  <span className="text-primary font-bold text-base">${product.price}</span>
+                  <span className="text-primary font-bold text-base">UGX {product.price.toLocaleString()}</span>
                   <Badge variant="secondary" className="text-xs">{product.category}</Badge>
                 </div>
               </CardContent>
@@ -102,6 +134,7 @@ const ShopDetails: React.FC = () => {
           ))
         )}
       </div>
+      )}
     </div>
   );
 };

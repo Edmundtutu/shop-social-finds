@@ -20,7 +20,7 @@ class ProductResource extends JsonResource
             'shop_id' => $this->shop_id,
             'name' => $this->name,
             'description' => $this->description ?? '', // Ensure description is not null
-            'price' => $this->price,
+            'price' => (float) $this->price,
             'stock' => $this->stock,
             'images' => $this->images,
             'category' => $this->category, // Ensure category is included

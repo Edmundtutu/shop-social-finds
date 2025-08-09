@@ -1,8 +1,7 @@
-php
 <?php
 namespace App\Http\Filters\V1;
 
-use App\Http\Filter\ApiFilter;
+use App\Http\Filters\ApiFilter;
 
 class ProductFilter extends ApiFilter{
     protected $allowed_params = [

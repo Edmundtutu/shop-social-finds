@@ -49,6 +49,10 @@ class ProductController extends Controller
         // Apply eager loading for the shop and reviews relationships
         $query->with(['shop', 'reviews']);
 
+        // Pagination (default 10 per page)
+        $perPage = (int) ($request->query('per_page', 10));
+        $products = $query->paginate($perPage)->appends($request->query());
+
         return ProductResource::collection($products);
     }
 

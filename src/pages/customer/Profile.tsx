@@ -13,21 +13,21 @@ import {
   Package
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Order, Review } from '@/types';
+import { Order, Review, Product } from '@/types';
+import { useFavorites } from '@/context/FavoritesContext';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [favorites, setFavorites] = useState<any[]>([]);
+  const { favoriteProducts, removeProductFromFavorites } = useFavorites();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch user data from API
+    // TODO: Fetch user data from API (orders, reviews). Favorites are client-side
     setIsLoading(false);
     setOrders([]);
     setReviews([]);
-    setFavorites([]);
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -221,10 +221,10 @@ const Profile: React.FC = () => {
         <TabsContent value="favorites" className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Favorite Products</h2>
-            <p className="text-muted-foreground">{favorites.length} items</p>
+            <p className="text-muted-foreground">{favoriteProducts.length} items</p>
           </div>
 
-          {favorites.length === 0 ? (
+          {favoriteProducts.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -236,7 +236,7 @@ const Profile: React.FC = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {favorites.map((item) => (
+              {favoriteProducts.map((item: Product) => (
                 <Card key={item.id}>
                   <CardContent className="p-4">
                     <div className="aspect-square bg-muted rounded-lg flex items-center justify-center mb-4">
@@ -245,8 +245,8 @@ const Profile: React.FC = () => {
                     <h3 className="font-medium mb-2">{item.name}</h3>
                     <p className="text-sm text-muted-foreground mb-2">{item.shop?.name}</p>
                     <div className="flex items-center justify-between">
-                      <span className="font-bold">${item.price}</span>
-                      <Button size="sm">
+                      <span className="font-bold">UGX {item.price.toLocaleString()}</span>
+                      <Button size="sm" variant="outline" onClick={() => removeProductFromFavorites(item.id)}>
                         Add to Cart
                       </Button>
                     </div>

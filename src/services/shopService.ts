@@ -1,6 +1,8 @@
 import api from './api';
 import { Shop, Product, Order, Review, Post, PaginatedResponse, ApiResponse } from '@/types';
 
+const apiVersion = import.meta.env.VITE_API_VERSION;
+
 export const shopService = {
   // Shops
   async getShops(params?: {
@@ -9,27 +11,27 @@ export const shopService = {
     lng?: number;
     radius?: number;
   }): Promise<Shop[]> {
-    const response = await api.get<ApiResponse<Shop[]>>('/shops', { params });
+    const response = await api.get<ApiResponse<Shop[]>>(`${apiVersion}/shops`, { params });
     return response.data.data;
   },
 
   async getShop(id: number): Promise<Shop> {
-    const response = await api.get<ApiResponse<Shop>>(`/shops/${id}`);
+    const response = await api.get<ApiResponse<Shop>>(`${apiVersion}/shops/${id}`);
     return response.data.data;
   },
 
   async createShop(data: Partial<Shop>): Promise<Shop> {
-    const response = await api.post<ApiResponse<Shop>>('/shops', data);
+    const response = await api.post<ApiResponse<Shop>>(`${apiVersion}/shops`, data);
     return response.data.data;
   },
 
   async updateShop(id: number, data: Partial<Shop>): Promise<Shop> {
-    const response = await api.put<ApiResponse<Shop>>(`/shops/${id}`, data);
+    const response = await api.put<ApiResponse<Shop>>(`${apiVersion}/shops/${id}`, data);
     return response.data.data;
   },
 
   async deleteShop(id: number): Promise<void> {
-    await api.delete(`/shops/${id}`);
+    await api.delete(`${apiVersion}/shops/${id}`);
   },
 
   // Products
@@ -42,27 +44,36 @@ export const shopService = {
     radius?: number;
     page?: number;
   }): Promise<PaginatedResponse<Product>> {
-    const response = await api.get<PaginatedResponse<Product>>('/products', { params });
+    const response = await api.get<PaginatedResponse<Product>>(`${apiVersion}/products`, { params });
     return response.data;
   },
 
   async getProduct(id: number): Promise<Product> {
-    const response = await api.get<ApiResponse<Product>>(`/products/${id}`);
+    const response = await api.get<ApiResponse<Product>>(`${apiVersion}/products/${id}`);
     return response.data.data;
   },
 
   async createProduct(data: Partial<Product>): Promise<Product> {
-    const response = await api.post<ApiResponse<Product>>('/products', data);
+    const response = await api.post<ApiResponse<Product>>(`${apiVersion}/products`, data);
     return response.data.data;
   },
 
   async updateProduct(id: number, data: Partial<Product>): Promise<Product> {
-    const response = await api.put<ApiResponse<Product>>(`/products/${id}`, data);
+    const response = await api.put<ApiResponse<Product>>(`${apiVersion}/products/${id}`, data);
     return response.data.data;
   },
 
   async deleteProduct(id: number): Promise<void> {
-    await api.delete(`/products/${id}`);
+    await api.delete(`${apiVersion}/products/${id}`);
+  },
+
+  async getShopProducts(shopId: number): Promise<Product[]> {
+    const response = await api.get(`${apiVersion}/products`, { params: { shop_id: shopId } });
+    // Accept either paginated or plain data
+    if ((response.data as any)?.data) {
+      return (response.data as any).data;
+    }
+    return response.data ?? [];
   },
 
   // Orders
@@ -71,12 +82,12 @@ export const shopService = {
     shop_id?: number;
     page?: number;
   }): Promise<PaginatedResponse<Order>> {
-    const response = await api.get<PaginatedResponse<Order>>('/orders', { params });
+    const response = await api.get<PaginatedResponse<Order>>(`${apiVersion}/orders`, { params });
     return response.data;
   },
 
   async getOrder(id: number): Promise<Order> {
-    const response = await api.get<ApiResponse<Order>>(`/orders/${id}`);
+    const response = await api.get<ApiResponse<Order>>(`${apiVersion}/orders/${id}`);
     return response.data.data;
   },
 
@@ -87,12 +98,12 @@ export const shopService = {
     delivery_address?: string;
     notes?: string;
   }): Promise<Order> {
-    const response = await api.post<ApiResponse<Order>>('/orders', data);
+    const response = await api.post<ApiResponse<Order>>(`${apiVersion}/orders`, data);
     return response.data.data;
   },
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {
-    const response = await api.put<ApiResponse<Order>>(`/orders/${id}/status`, { status });
+    const response = await api.put<ApiResponse<Order>>(`${apiVersion}/orders/${id}/status`, { status });
     return response.data.data;
   },
 
@@ -102,7 +113,7 @@ export const shopService = {
     shop_id?: number;
     page?: number;
   }): Promise<PaginatedResponse<Review>> {
-    const response = await api.get<PaginatedResponse<Review>>('/reviews', { params });
+    const response = await api.get<PaginatedResponse<Review>>(`${apiVersion}/reviews`, { params });
     return response.data;
   },
 
@@ -113,13 +124,13 @@ export const shopService = {
     comment?: string;
     images?: string[];
   }): Promise<Review> {
-    const response = await api.post<ApiResponse<Review>>('/reviews', data);
+    const response = await api.post<ApiResponse<Review>>(`${apiVersion}/reviews`, data);
     return response.data.data;
   },
 
   // Posts (Social Feed)
   async getPosts(params?: { page?: number }): Promise<PaginatedResponse<Post>> {
-    const response = await api.get<PaginatedResponse<Post>>('/posts', { params });
+    const response = await api.get<PaginatedResponse<Post>>(`${apiVersion}/posts`, { params });
     return response.data;
   },
 
@@ -129,37 +140,37 @@ export const shopService = {
     product_id?: number;
     shop_id?: number;
   }): Promise<Post> {
-    const response = await api.post<ApiResponse<Post>>('/posts', data);
+    const response = await api.post<ApiResponse<Post>>(`${apiVersion}/posts`, data);
     return response.data.data;
   },
 
   async likePost(id: number): Promise<void> {
-    await api.post(`/posts/${id}/like`);
+    await api.post(`${apiVersion}/posts/${id}/like`);
   },
 
   async unlikePost(id: number): Promise<void> {
-    await api.delete(`/posts/${id}/like`);
+    await api.delete(`${apiVersion}/posts/${id}/like`);
   },
 
   // Cart
   async getCart(): Promise<any[]> {
-    const response = await api.get<ApiResponse<any[]>>('/cart');
+    const response = await api.get<ApiResponse<any[]>>(`${apiVersion}/cart`);
     return response.data.data;
   },
 
   async addToCart(product_id: number, quantity: number): Promise<void> {
-    await api.post('/cart', { product_id, quantity });
+    await api.post(`${apiVersion}/cart`, { product_id, quantity });
   },
 
   async updateCartItem(id: number, quantity: number): Promise<void> {
-    await api.put(`/cart/${id}`, { quantity });
+    await api.put(`${apiVersion}/cart/${id}`, { quantity });
   },
 
   async removeFromCart(id: number): Promise<void> {
-    await api.delete(`/cart/${id}`);
+    await api.delete(`${apiVersion}/cart/${id}`);
   },
 
   async clearCart(): Promise<void> {
-    await api.delete('/cart');
+    await api.delete(`${apiVersion}/cart`);
   },
 };

@@ -18,6 +18,7 @@ import Product from '@/pages/customer/Product';
 import ShopMap from '@/pages/customer/ShopMap';
 import Cart from '@/pages/customer/Cart';
 import Profile from '@/pages/customer/Profile';
+import Favorites from '@/pages/customer/Favorites';
 import ShopDetails from '@/pages/shops/[shopId]';
 
 
@@ -126,6 +127,11 @@ const AppRoutes: React.FC = () => {
       <Route path="/profile" element={
         <ProtectedRoute requiredRole={['customer']} layout="main">
           <Profile />
+        </ProtectedRoute>
+      } />
+      <Route path="/favorites" element={
+        <ProtectedRoute requiredRole={['customer']} layout="main">
+          <Favorites />
         </ProtectedRoute>
       } />
 
