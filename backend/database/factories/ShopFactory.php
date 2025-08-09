@@ -33,17 +33,41 @@ class ShopFactory extends Factory
             'sunday' => ['open' => '10:00', 'close' => '16:00'],
         ];
 
+        $baseLat = -0.6152; // Mbarara University
+        $baseLng = 30.6586;
+    
+        // Distance in km between 5 and 10
+        $distanceKm = $this->faker->randomFloat(3, 5, 10);
+    
+        // Random bearing (direction) in radians
+        $bearing = deg2rad($this->faker->numberBetween(0, 359));
+    
+        // Earth radius in km
+        $earthRadius = 6371;
+    
+        // Calculate new lat/lng
+        $newLat = asin(
+            sin(deg2rad($baseLat)) * cos($distanceKm / $earthRadius) +
+            cos(deg2rad($baseLat)) * sin($distanceKm / $earthRadius) * cos($bearing)
+        );
+    
+        $newLng = deg2rad($baseLng) + atan2(
+            sin($bearing) * sin($distanceKm / $earthRadius) * cos(deg2rad($baseLat)),
+            cos($distanceKm / $earthRadius) - sin(deg2rad($baseLat)) * sin($newLat)
+        );
+
         return [
             'owner_id' => User::factory()->vendor(),
             'name' => $this->faker->randomElement($businessTypes) . ' - ' . $this->faker->lastName(),
             'description' => $this->faker->realText(200),
             'address' => $this->faker->address(),
-            'lat' => $this->faker->latitude(-1.5, 1.5), // Kenya/East Africa region
-            'lng' => $this->faker->longitude(36, 42), // Kenya/East Africa region
-            'avatar' => $this->faker->imageUrl(300, 300, 'business'),
-            'cover_image' => $this->faker->imageUrl(800, 400, 'business'),
+            'lat' => rad2deg($newLat),
+            'lng' => rad2deg($newLng),
+            'avatar' => 'https://picsum.photos/seed/' . $this->faker->uuid . '/600/400',
+            'cover_image' => 'https://picsum.photos/seed/' . $this->faker->uuid . '/600/400',
             'phone' => $this->faker->phoneNumber(),
             'hours' => $businessHours,
+            'category' => $this->faker->randomElement($businessTypes),
             'verified' => $this->faker->boolean(30), // 30% chance of being verified
         ];
     }

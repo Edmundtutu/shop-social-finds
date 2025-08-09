@@ -27,6 +27,7 @@ class ShopResource extends JsonResource
             'phone' => $this->phone,
             'hours' => $this->hours,
             'verified' => $this->verified,
+            'distance' => $this->when(isset($this->distance), (float) $this->distance),
  'rating' => $this->whenLoaded('reviews', fn () => round($this->reviews->avg('rating'), 1), 0),
  'total_reviews' => $this->whenLoaded('reviews', fn () => $this->reviews->count(), 0),
             'created_at' => $this->created_at,

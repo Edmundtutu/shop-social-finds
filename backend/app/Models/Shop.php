@@ -26,6 +26,7 @@ class Shop extends Model
         'cover_image',
         'phone',
         'hours',
+        'category',
         'verified',
     ];
 

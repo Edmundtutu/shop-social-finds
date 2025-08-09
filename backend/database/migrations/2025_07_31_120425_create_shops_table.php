@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('cover_image')->nullable();
             $table->string('phone')->nullable();
             $table->json('hours')->nullable();
+            $table->string('category')->nullable()->index();
             $table->boolean('verified')->default(false);
             $table->timestamps();
             $table->softDeletes();

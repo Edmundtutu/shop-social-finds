@@ -1,5 +1,6 @@
 import api from './api';
-import { Shop, Product, Order, Review, Post, PaginatedResponse, ApiResponse } from '@/types';
+import { Shop, Product, Order, Review, Post, ApiResponse, PaginatedResponse } from '@/types';
+import type { LaravelPaginatedResponse } from '@/types/api';
 
 const apiVersion = import.meta.env.VITE_API_VERSION;
 
@@ -12,27 +13,51 @@ export const shopService = {
     search?: string;
     category?: string;
     page?: number;
-  }): Promise<PaginatedResponse<Shop>> {
+  }): Promise<LaravelPaginatedResponse<Shop>> {
     const formattedParams: any = {};
 
+    // unified search param that backend groups with OR
     if (params?.search) {
-      formattedParams['name[like]'] = params.search;
-      formattedParams['description[like]'] = params.search;
-      formattedParams['address[like]'] = params.search;
+      formattedParams['search'] = params.search;
     }
-    if (params?.lat && params?.lng && params.radius !== null) {
+    if (params?.lat != null && params?.lng != null && params.radius != null) {
       formattedParams['lat'] = params.lat;
       formattedParams['lng'] = params.lng;
       formattedParams['radius'] = params.radius;
     }
     if (params?.category && params.category !== 'all') {
-      formattedParams['category[eq]'] = params.category;
+      formattedParams['category'] = params.category;
     }
     if (params?.page) {
       formattedParams['page'] = params.page;
     }
-    const response = await api.get<PaginatedResponse<Shop>>(`${apiVersion}/shops`, { params: formattedParams });
-    return response.data.data;
+
+    const response = await api.get(`${apiVersion}/shops`, { params: formattedParams });
+    const apiData = response.data as LaravelPaginatedResponse<any>;
+
+    const mapApiShopToClient = (s: any): Shop => ({
+      id: s.id,
+      name: s.name,
+      description: s.description ?? '',
+      location: { lat: Number(s.lat), lng: Number(s.lng), address: s.address ?? '' },
+      avatar: s.avatar ?? undefined,
+      cover_image: s.cover_image ?? undefined,
+      owner_id: s.owner_id,
+      owner: s.owner,
+      rating: s.rating ?? 0,
+      total_reviews: s.total_reviews ?? 0,
+      phone: s.phone ?? undefined,
+      hours: s.hours ?? undefined,
+      verified: !!s.verified,
+      created_at: s.created_at,
+      updated_at: s.updated_at,
+      ...(s.distance !== undefined ? { distance: Number(s.distance) } : {}),
+    });
+
+    return {
+      ...apiData,
+      data: (apiData.data ?? []).map(mapApiShopToClient),
+    };
   },
 
   async getShop(id: number): Promise<Shop> {

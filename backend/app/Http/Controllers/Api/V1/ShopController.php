@@ -9,6 +9,7 @@ use App\Http\Requests\Api\V1\StoreShopRequest;
 use App\Http\Filters\V1\ShopFilter;
 use App\Http\Requests\Api\V1\UpdateShopRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 class ShopController extends Controller
 {
@@ -17,28 +18,67 @@ class ShopController extends Controller
      */
     public function index(Request $request)
     {
-        $filter = new ShopFilter();
-        $filterItems = $filter->transform($request);
+        $query = Shop::query();
 
-        // Handle location filtering
-        if (request()->has(['lat', 'lng', 'radius'])) {
-            $lat = $request->query('lat');
-            $lng = $request->query('lng');
-            $radius = $request->query('radius'); // in km
-
-            $query = Shop::query();
-            $haversine = "(6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat))))";
-            $query->select('*')
-                ->selectRaw("{$haversine} AS distance", [$lat, $lng, $lat])
-            $query->whereRaw(
-                "{$haversine} < ?", [$lat, $lng, $lat, $radius]
-            );
-        } else {
-            $query = Shop::query();
+        // Text search across multiple columns using a single 'search' param
+        if ($request->filled('search')) {
+            $search = '%' . $request->query('search') . '%';
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', $search)
+                  ->orWhere('description', 'LIKE', $search)
+                  ->orWhere('address', 'LIKE', $search);
+            });
         }
 
-        $query->where($filterItems);
+        // Location filtering using Haversine formula (distance in km)
+        if ($request->has(['lat', 'lng', 'radius'])) {
+            $lat = (float) $request->query('lat');
+            $lng = (float) $request->query('lng');
+            $radius = (float) $request->query('radius');
+
+            $haversine = "(6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat))))";
+            $query->select('*')
+                  ->selectRaw("{$haversine} AS distance", [$lat, $lng, $lat])
+                  ->whereRaw("{$haversine} < ?", [$lat, $lng, $lat, $radius])
+                  ->orderBy('distance');
+        }
+
+        // Structured filters via ApiFilter
+        $filter = new ShopFilter();
+        foreach ($filter->transform($request) as $clause) {
+            [$column, $op, $value] = $clause;
+            switch ($op) {
+                case 'IN':
+                    $values = is_array($value) ? $value : explode(',', (string) $value);
+                    $query->whereIn($column, $values);
+                    break;
+                case 'NOT IN':
+                    $values = is_array($value) ? $value : explode(',', (string) $value);
+                    $query->whereNotIn($column, $values);
+                    break;
+                case 'BETWEEN':
+                    $bounds = is_array($value) ? $value : explode(',', (string) $value);
+                    if (count($bounds) === 2) {
+                        $query->whereBetween($column, [$bounds[0], $bounds[1]]);
+                    }
+                    break;
+                case 'NOT BETWEEN':
+                    $bounds = is_array($value) ? $value : explode(',', (string) $value);
+                    if (count($bounds) === 2) {
+                        $query->whereNotBetween($column, [$bounds[0], $bounds[1]]);
+                    }
+                    break;
+                default:
+                    // LIKE should include wildcards if client didn't supply
+                    if ($op === 'LIKE' && is_string($value) && strpos($value, '%') === false) {
+                        $value = '%' . $value . '%';
+                    }
+                    $query->where($column, $op, $value);
+            }
+        }
+
         $query->with('reviews'); // Eager load reviews for rating/total reviews
+
         return ShopResource::collection($query->paginate());
     }
 

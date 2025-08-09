@@ -28,6 +28,9 @@ import '@/styles/custom.css';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { shopService } from '@/services/shopService';
+import type { LaravelPaginatedResponse } from '@/types';
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -38,24 +41,15 @@ L.Icon.Default.mergeOptions({
 });
 
 interface ShopMapProps {
-  shops: Shop[];
+  shops?: Shop[];
   onShopSelect?: (shop: Shop) => void;
   onLocationTag?: (location: { lat: number; lng: number; address: string }) => void;
   showTagging?: boolean;
   className?: string;
+  fetchFromBackend?: boolean; // if true (default), fetch shops using backend with filters
 }
 
-const SHOP_CATEGORIES = [
-  { value: 'all', label: 'All Shops' },
-  { value: 'electronics', label: 'Electronics' },
-  { value: 'fashion', label: 'Fashion' },
-  { value: 'food', label: 'Food & Grocery' },
-  { value: 'beauty', label: 'Beauty & Cosmetics' },
-  { value: 'sports', label: 'Sports' },
-  { value: 'books', label: 'Books & Education' },
-  { value: 'home', label: 'Home & Garden' },
-  { value: 'tech', label: 'Tech Services' },
-];
+import { SHOP_CATEGORIES } from '@/shared/constants/shops';
 
 const MAP_STYLES = [
   { value: 'osm', label: 'Street Map', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
@@ -129,7 +123,8 @@ const ShopMap: React.FC<ShopMapProps> = ({
   onShopSelect, 
   onLocationTag,
   showTagging = false,
-  className = ""
+  className = "",
+  fetchFromBackend = true,
 }) => {
   const navigate = useNavigate();
   const { location: userLocation, error, loading, requestLocation } = useGeolocation();
@@ -141,6 +136,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
   const [mapStyle, setMapStyle] = useState('osm');
   const [isMobile, setIsMobile] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
+  const [page, setPage] = useState(1);
 
   // Default center (Your current location)
   const defaultCenter: [number, number] = [-1.268122, 29.985997];
@@ -148,16 +144,32 @@ const ShopMap: React.FC<ShopMapProps> = ({
     ? [userLocation.lat, userLocation.lng] 
     : defaultCenter;
 
-  // Filter shops based on search, category, and radius
-  const filteredShops = useMemo(() => {
-    let filtered = shops;
+  // Backend-powered fetching (preferred). Falls back to client filtering if shops prop provided and fetch disabled.
+  const shouldFetch = fetchFromBackend;
 
-    // Filter by category
+  const { data: shopsResponse, isLoading: shopsLoading, error: shopsError } = useQuery<LaravelPaginatedResponse<Shop>, Error>({
+    queryKey: ['shops-map', userLocation, searchRadius[0], searchQuery, selectedCategory, page],
+    queryFn: () => {
+      if (!userLocation) return Promise.reject('User location not available');
+      return shopService.getShops({
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        radius: searchRadius[0],
+        search: searchQuery,
+        category: selectedCategory,
+        page,
+      });
+    },
+    enabled: shouldFetch && !!userLocation,
+    staleTime: 60 * 1000,
+  });
+
+  const clientFilteredShops = useMemo(() => {
+    const input = shops ?? [];
+    let filtered = input;
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(shop => getShopCategory(shop) === selectedCategory);
     }
-
-    // Filter by search query
     if (searchQuery.trim()) {
       filtered = filtered.filter(shop =>
         shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -165,14 +177,13 @@ const ShopMap: React.FC<ShopMapProps> = ({
         shop.location.address.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-
-    // Filter by radius if user location is available
     if (userLocation) {
       filtered = getShopsWithinRadius(userLocation, filtered, searchRadius[0]);
     }
-
     return filtered;
   }, [shops, searchQuery, searchRadius, userLocation, selectedCategory]);
+
+  const displayedShops: Shop[] = shouldFetch ? (shopsResponse?.data ?? []) : clientFilteredShops;
 
   useEffect(() => {
     // Request location on component mount
@@ -219,7 +230,8 @@ const ShopMap: React.FC<ShopMapProps> = ({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Search is handled by the useMemo above
+    // When fetching from backend, resetting page will trigger refetch
+    setPage(1);
   };
 
   return (
@@ -294,7 +306,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
             </Select>
 
             <Badge variant="outline" className="text-xs px-2 py-1 whitespace-nowrap">
-              {filteredShops.length} shops
+              {displayedShops.length} shops
             </Badge>
           </div>
 
@@ -419,7 +431,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">
-                    {filteredShops.length} shops found
+                    {displayedShops.length} shops found
                   </span>
                   <Button
                     variant="outline"
@@ -483,7 +495,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
                   )}
                   
                   {/* Shop markers */}
-                  {filteredShops.map((shop) => (
+                  {displayedShops.map((shop) => (
                     <ShopMarker
                       key={shop.id}
                       shop={shop}
@@ -725,15 +737,15 @@ const ShopMap: React.FC<ShopMapProps> = ({
             <Card>
               <CardContent className="p-4">
                 <h3 className="font-medium mb-3">
-                  Nearby Shops ({filteredShops.length})
+                  Nearby Shops ({displayedShops.length})
                 </h3>
-                {filteredShops.length === 0 ? (
+                {displayedShops.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     No shops found in your area
                   </p>
                 ) : (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {filteredShops.slice(0, 10).map((shop) => (
+                    {displayedShops.slice(0, 10).map((shop) => (
                       <div
                         key={shop.id}
                         className={`flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer transition-colors ${

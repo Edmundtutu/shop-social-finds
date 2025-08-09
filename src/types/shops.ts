@@ -62,7 +62,7 @@ export interface Shop {
   avatar?: string;
   cover_image?: string;
   owner_id: string;
-  owner: AuthUser;
+  owner?: AuthUser;
   rating: number;
   total_reviews: number;
   phone?: string;
@@ -72,4 +72,5 @@ export interface Shop {
   verified: boolean;
   created_at: string;
   updated_at: string;
+  distance?: number;
 }
