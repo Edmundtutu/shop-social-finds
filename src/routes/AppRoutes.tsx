@@ -15,7 +15,7 @@ import Register from '@/pages/auth/Register';
 import Home from '@/pages/customer/Home';
 import Discover from '@/pages/customer/Discover';
 import Product from '@/pages/customer/Product';
-import ShopMap from '@/pages/customer/ShopMap';
+import ShopMapPage from '@/pages/customer/ShopMapPage';
 import Cart from '@/pages/customer/Cart';
 import Profile from '@/pages/customer/Profile';
 import Favorites from '@/pages/customer/Favorites';
@@ -114,7 +114,7 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/map" element={
         <MainLayout>
-          <ShopMap />
+          <ShopMapPage   />
         </MainLayout>
       } />
       
