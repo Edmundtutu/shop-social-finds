@@ -14,6 +14,7 @@ class ShopFilter extends ApiFilter{
         'lng' => ['eq', 'btw', 'not_btw','gt','lt','gte','lte','ne','in','not_in'],
         'phone' => ['eq', 'like'],
         'hours' => ['eq','in','not_in','btw','not_btw','gt','lt','gte','lte','ne'],
+        'category' => ['eq'],
     ];
 
     protected $column_map = [

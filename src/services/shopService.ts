@@ -6,12 +6,32 @@ const apiVersion = import.meta.env.VITE_API_VERSION;
 export const shopService = {
   // Shops
   async getShops(params?: {
-    search?: string;
     lat?: number;
     lng?: number;
     radius?: number;
-  }): Promise<Shop[]> {
-    const response = await api.get<ApiResponse<Shop[]>>(`${apiVersion}/shops`, { params });
+    search?: string;
+    category?: string;
+    page?: number;
+  }): Promise<PaginatedResponse<Shop>> {
+    const formattedParams: any = {};
+
+    if (params?.search) {
+      formattedParams['name[like]'] = params.search;
+      formattedParams['description[like]'] = params.search;
+      formattedParams['address[like]'] = params.search;
+    }
+    if (params?.lat && params?.lng && params.radius !== null) {
+      formattedParams['lat'] = params.lat;
+      formattedParams['lng'] = params.lng;
+      formattedParams['radius'] = params.radius;
+    }
+    if (params?.category && params.category !== 'all') {
+      formattedParams['category[eq]'] = params.category;
+    }
+    if (params?.page) {
+      formattedParams['page'] = params.page;
+    }
+    const response = await api.get<PaginatedResponse<Shop>>(`${apiVersion}/shops`, { params: formattedParams });
     return response.data.data;
   },
 
