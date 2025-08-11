@@ -60,9 +60,27 @@ export const shopService = {
     };
   },
 
-  async getShop(id: number): Promise<Shop> {
-    const response = await api.get<ApiResponse<Shop>>(`${apiVersion}/shops/${id}`);
-    return response.data.data;
+  async getShop(id: string | number): Promise<Shop> {
+    const response = await api.get(`${apiVersion}/shops/${id}`);
+    const s = (response.data as ApiResponse<any>).data;
+    return {
+      id: s.id,
+      name: s.name,
+      description: s.description ?? '',
+      location: { lat: Number(s.lat), lng: Number(s.lng), address: s.address ?? '' },
+      avatar: s.avatar ?? undefined,
+      cover_image: s.cover_image ?? undefined,
+      owner_id: s.owner_id,
+      owner: s.owner,
+      rating: s.rating ?? 0,
+      total_reviews: s.total_reviews ?? 0,
+      phone: s.phone ?? undefined,
+      hours: s.hours ?? undefined,
+      verified: !!s.verified,
+      created_at: s.created_at,
+      updated_at: s.updated_at,
+      ...(s.distance !== undefined ? { distance: Number(s.distance) } : {}),
+    };
   },
 
   async createShop(data: Partial<Shop>): Promise<Shop> {
@@ -112,7 +130,7 @@ export const shopService = {
     await api.delete(`${apiVersion}/products/${id}`);
   },
 
-  async getShopProducts(shopId: number): Promise<Product[]> {
+  async getShopProducts(shopId: string | number): Promise<Product[]> {
     const response = await api.get(`${apiVersion}/products`, { params: { shop_id: shopId } });
     // Accept either paginated or plain data
     if ((response.data as any)?.data) {

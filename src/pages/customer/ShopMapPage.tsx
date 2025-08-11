@@ -7,21 +7,6 @@ import { useGeolocation } from '@/hooks/utils/useGeolocation';
 const ShopMapPage: React.FC = () => {
   const navigate = useNavigate();
 
-  // Remove demo data states and effect
-  /* useEffect(() => {
-      try {
-        // In a real app, this would be an API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setShops(DEMO_SHOPS);
-      } catch (error) {
-        console.error('Failed to load shops:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadShops();
-  }, []); */
-
   // Filters and pagination are handled inside ShopMap to avoid duplication.
 
   const { location: userLocation, error: geoError, loading: geoLoading, requestLocation } = useGeolocation();
@@ -39,7 +24,7 @@ const ShopMapPage: React.FC = () => {
 
   const handleShopSelect = (shop: Shop) => {
     // Navigate to shop page or show shop details
-    navigate(`/shop/${shop.id}`);
+    navigate(`/shops/${shop.id}`);
   };
 
   // Pagination moved to ShopMap.

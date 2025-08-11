@@ -100,6 +100,8 @@ class ShopController extends Controller
      */
     public function show(Shop $shop)
     {
+        // Ensure reviews are loaded so rating/total_reviews are populated
+        $shop->load('reviews');
         return new ShopResource($shop);
     }
 

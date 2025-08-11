@@ -40,11 +40,11 @@ class ProductFactory extends Factory
         ];
 
         $priceRange = $priceRanges[$category];
-        $images = [
-            $this->faker->imageUrl(400, 400, 'products'),
-            $this->faker->imageUrl(400, 400, 'products'),
-            $this->faker->imageUrl(400, 400, 'products')
-        ];
+        $images = [];
+        $imageCount = $this->faker->numberBetween(1, 3);
+        for ($i = 0; $i < $imageCount; $i++) {
+            $images[] = 'https://picsum.photos/seed/' . $this->faker->uuid . '/400/400';
+        }
 
         $tags = $this->faker->randomElements([
             'popular', 'new', 'sale', 'featured', 'bestseller', 

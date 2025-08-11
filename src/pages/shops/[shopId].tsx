@@ -12,10 +12,10 @@ const ShopDetails: React.FC = () => {
   const { shopId } = useParams<{ shopId: string }>();
   const navigate = useNavigate();
 
-  const { data: shop, isLoading: loadingShop } = useQuery({
+  const { data: shop, isLoading: loadingShop, error: shopError } = useQuery<Shop>({
     enabled: !!shopId,
     queryKey: ['shop', shopId],
-    queryFn: () => shopService.getShop(Number(shopId)),
+    queryFn: () => shopService.getShop(shopId as string),
     staleTime: 30_000,
   });
 
@@ -23,7 +23,7 @@ const ShopDetails: React.FC = () => {
     enabled: !!shopId,
     queryKey: ['shopProducts', shopId],
     queryFn: async () => {
-      const response = await shopService.getShopProducts(Number(shopId));
+      const response = await shopService.getShopProducts(shopId as string);
       return response;
     },
     staleTime: 30_000,
@@ -41,6 +41,9 @@ const ShopDetails: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
         <h2 className="text-2xl font-bold mb-4">Shop Not Found</h2>
+        {shopError && (
+          <p className="text-sm text-destructive mb-2">{(shopError as Error).message}</p>
+        )}
         <Button onClick={() => navigate(-1)} variant="outline">
           <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
         </Button>
@@ -69,30 +72,24 @@ const ShopDetails: React.FC = () => {
           <div className="flex-1 min-w-0 text-center md:text-left">
             <h2 className="text-2xl font-bold mb-1">{shop.name}</h2>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
-              {typeof (shop as any).rating !== 'undefined' && (
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-base font-medium">{(shop as any).rating}</span>
-                  <span className="text-xs text-muted-foreground">({(shop as any).total_reviews})</span>
-                </div>
-              )}
-              {'verified' in shop && (
-                <Badge variant={(shop as any).verified ? 'default' : 'secondary'} className="text-xs">
-                  {(shop as any).verified ? 'Verified' : 'Unverified'}
-                </Badge>
-              )}
+              <div className="flex items-center gap-1">
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <span className="text-base font-medium">{shop.rating}</span>
+                <span className="text-xs text-muted-foreground">({shop.total_reviews})</span>
+              </div>
+              <Badge variant={shop.verified ? 'default' : 'secondary'} className="text-xs">
+                {shop.verified ? 'Verified' : 'Unverified'}
+              </Badge>
             </div>
             <div className="flex flex-col gap-1 items-center md:items-start">
-              {'address' in shop && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  <span>{(shop as any).address}</span>
-                </div>
-              )}
-              {'phone' in shop && (shop as any).phone && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>{shop.location.address}</span>
+              </div>
+              {shop.phone && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Phone className="h-4 w-4" />
-                  <a href={`tel:${(shop as any).phone}`} className="hover:underline text-primary">{(shop as any).phone}</a>
+                  <a href={`tel:${shop.phone}`} className="hover:underline text-primary">{shop.phone}</a>
                 </div>
               )}
             </div>
