@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use Illuminate\Http\Request;
+use App\Http\Resources\Api\V1\ProductResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class OrderItemResource extends JsonResource
@@ -20,6 +21,7 @@ class OrderItemResource extends JsonResource
             'product_id' => $this->product_id,
             'quantity' => $this->quantity,
             'price' => $this->price,
+            'product' => $this->whenLoaded('product', new ProductResource($this->product)),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -1,36 +1,45 @@
-import { Product } from './products';
-import { Shop } from './products';
-import { AuthUser } from './auth';
+import { Product } from "./products";
+import { Shop } from "./shops";
+import { User } from "./users";
 
-export interface CartItem {
-  id: string;
-  product_id: string;
-  product: Product;
+export interface CreateOrderItemPayload {
+  product_id: number;
   quantity: number;
-  price: number;
 }
 
-export interface Order {
-  id: string;
-  user_id: string;
-  user: AuthUser;
-  shop_id: string;
-  shop: Shop;
-  items: OrderItem[];
-  total: number;
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
-  delivery_type: 'pickup' | 'delivery';
-  delivery_address?: string;
+export interface CreateOrderPayload {
+  shop_id: number;
+  items: CreateOrderItemPayload[];
+  delivery_address: string;
+  delivery_lat: number;
+  delivery_lng: number;
   notes?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface OrderItem {
-  id: string;
-  order_id: string;
-  product_id: string;
-  product: Product;
+  id: number;
+  order_id: number;
+  product_id: number;
   quantity: number;
   price: number;
+  created_at: string;
+  updated_at: string;
+  product?: Product; // Nested product details
+}
+
+export interface Order {
+  id: number;
+  user_id: number;
+  shop_id: number;
+  total: number;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  delivery_address: string;
+  delivery_lat: number;
+  delivery_lng: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  items: OrderItem[];
+  user?: User; // Nested user details for vendor orders
+  shop?: Shop;
 }

@@ -38,6 +38,10 @@ Route::prefix('v1')->group(function () {
 
     // Order routes
     Route::apiResource('posts.comments', PostCommentController::class)->middleware('auth:sanctum');
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/vendor/orders', [OrderController::class, 'vendorOrders']);
+    });
     Route::apiResource('orders', OrderController::class);
 
     // Review routes

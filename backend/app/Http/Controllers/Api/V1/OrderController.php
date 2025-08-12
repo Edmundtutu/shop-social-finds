@@ -9,6 +9,7 @@ use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
@@ -105,5 +106,19 @@ class OrderController extends Controller
         }
 
         return response()->json(['message' => 'Order cannot be cancelled.'], 400);
+    }
+
+    /**
+     * Display a listing of the orders for the authenticated vendor's shops.
+     */
+    public function vendorOrders()
+    {
+        $this->authorize('viewAny', Order::class); // Using the same policy action for now, adjust if needed
+
+        $vendor = Auth::user();
+        $shopIds = $vendor->shops->pluck('id'); // Assuming a vendor has a shops relationship
+        $orders = Order::whereIn('shop_id', $shopIds)->with(['items.product', 'user'])->latest()->paginate();
+
+        return OrderResource::collection($orders);
     }
 }
