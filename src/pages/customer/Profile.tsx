@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Review, Product } from '@/types';
-import OrderHistory from '@/components/customer/OrderHistory';
+import OrderHistory from '@/components/customer/profile/orders/OrderHistory';
 import { useFavorites } from '@/context/FavoritesContext';
 
 const Profile: React.FC = () => {

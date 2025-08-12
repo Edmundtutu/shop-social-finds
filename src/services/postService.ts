@@ -6,10 +6,27 @@ import { Post, ApiResponse } from '@/types';
  */
 interface CreatePostData {
   content: string;
-  images?: File[];
+  images?: (File | string)[];
   productId?: string;
   shopId?: string;
 }
+
+/**
+ * Utility function to convert base64 image to File object
+ */
+const base64ToFile = (base64String: string, filename: string = 'image.jpg'): File => {
+  const arr = base64String.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  
+  return new File([u8arr], filename, { type: mime });
+};
 
 const apiVersion = import.meta.env.VITE_API_VERSION;
 
@@ -43,8 +60,15 @@ export const postService = {
     formData.append('content', postData.content);
 
     if (postData.images) {
-      postData.images.forEach(image => {
-        formData.append('images[]', image);
+      postData.images.forEach((image, index) => {
+        // Handle both File objects and base64 strings
+        if (image instanceof File) {
+          formData.append('images[]', image);
+        } else if (typeof image === 'string' && image.startsWith('data:')) {
+          // Convert base64 to File
+          const file = base64ToFile(image, `image_${index}.jpg`);
+          formData.append('images[]', file);
+        }
       });
     }
 
@@ -56,7 +80,7 @@ export const postService = {
       formData.append('shop_id', postData.shopId);
     }
 
-    const response = await api.post<ApiResponse<Post>>('${apiVersion}/posts', formData, { 
+    const response = await api.post<ApiResponse<Post>>(`${apiVersion}/posts`, formData, { 
       headers: { 'Content-Type': 'multipart/form-data' } 
     });
     return response.data.data;

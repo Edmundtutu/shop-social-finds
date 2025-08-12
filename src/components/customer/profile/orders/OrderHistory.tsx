@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getOrders } from '@/services/orderService';
 import { Order } from '@/types/orders';
@@ -10,6 +10,17 @@ const OrderHistory: React.FC = () => {
     queryKey: ['orders'],
     queryFn: getOrders,
   });
+
+  // All hooks must be called unconditionally on every render
+  const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
+  const expandPostRef = useRef<() => void>();
+
+  const handleStartPost = (order: Order) => {
+    setActiveOrderId(order.id);
+    expandPostRef.current?.();
+  };
+
+  const activeOrder = useMemo(() => orders?.find(o => o.id === activeOrderId) ?? null, [orders, activeOrderId]);
 
   if (isLoading) {
     return (
@@ -39,11 +50,19 @@ const OrderHistory: React.FC = () => {
 
   return (
     <div className="w-full">
+      {/* Inline composers are rendered within each OrderCard now */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 auto-rows-fr">
         {orders.map((order) => (
-          <OrderCard key={order.id} order={order} context="customer" />
+          <OrderCard
+            key={order.id}
+            order={order}
+            context="customer"
+            onStartPost={handleStartPost}
+            isPostDisabled={false}
+          />
         ))}
       </div>
+
     </div>
   );
 };
