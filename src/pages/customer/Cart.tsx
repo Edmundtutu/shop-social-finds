@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
+import { useMutation } from '@tanstack/react-query';
+import { createOrder } from '@/services/orderService';
+import type { CreateOrderPayload, Order } from '@/types/orders';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
@@ -35,7 +38,20 @@ const Cart: React.FC = () => {
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { mutateAsync: placeOrder, isPending: isProcessingOrder } = useMutation<Order, any, CreateOrderPayload>({
+    mutationFn: createOrder,
+    onSuccess: (data, variables) => {
+      // eslint-disable-next-line no-console
+      console.log(`Order placed successfully for shop ${variables.shop_id}!`, data);
+    },
+    onError: (error: any, variables) => {
+      toast({
+        title: `Order failed for shop ${variables.shop_id}`,
+        description: error?.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    },
+  });
 
   const itemsByShop = getItemsByShop();
   const total = getTotal();
@@ -48,60 +64,55 @@ const Cart: React.FC = () => {
 
     if (deliveryType === 'delivery' && !deliveryAddress.trim()) {
       toast({
-        title: "Delivery address required",
-        description: "Please enter your delivery address",
-        variant: "destructive",
+        title: 'Delivery address required',
+        description: 'Please enter your delivery address',
+        variant: 'destructive',
       });
       return;
     }
 
-    setIsProcessing(true);
+    const deliveryCoords = { lat: 0, lng: 0 };
+
+    const payloads = Object.entries(itemsByShop).map(([groupKey, shopItems]) => {
+      const shopIdStr = String(shopItems?.[0]?.shop?.id ?? groupKey);
+      const isValidUlid = (val: string) => /^[0-9A-HJKMNP-TV-Z]{26}$/i.test(val);
+
+      if (!shopIdStr || !isValidUlid(shopIdStr)) {
+        toast({
+          title: 'Checkout failed',
+          description: 'Invalid shop identifier. Please try again.',
+          variant: 'destructive',
+        });
+        throw new Error('Invalid ULID for shop_id');
+      }
+
+      return {
+        shop_id: shopIdStr,
+        items: shopItems.map((item) => ({
+          product_id: String(item.product.id),
+          quantity: item.quantity,
+        })),
+        delivery_address: deliveryType === 'delivery' ? deliveryAddress : 'N/A for pickup',
+        delivery_lat: deliveryCoords.lat,
+        delivery_lng: deliveryCoords.lng,
+        notes: notes || undefined,
+      };
+    });
+
+    const orderCreationPromises = payloads.map((p) => placeOrder(p));
 
     try {
-      // Simulate order creation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Create orders for each shop
-      const orderPromises = Object.entries(itemsByShop).map(async ([shopId, shopItems]) => {
-        const orderData = {
-          shop_id: shopId,
-          items: shopItems.map(item => ({
-            product_id: item.product.id,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-          delivery_type: deliveryType,
-          delivery_address: deliveryType === 'delivery' ? deliveryAddress : undefined,
-          notes: notes || undefined,
-          total: shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        };
-
-        // TODO: Replace with actual API call
-        console.log('Creating order:', orderData);
-        return orderData;
-      });
-
-      await Promise.all(orderPromises);
-
-      // Clear cart and show success
+      await Promise.all(orderCreationPromises);
       clearCart();
-      
       toast({
-        title: "Orders placed successfully!",
-        description: `${Object.keys(itemsByShop).length} order(s) have been placed`,
+        title: 'Orders placed successfully!',
+        description: 'You can view your orders in your profile.',
       });
-
-      // Navigate to orders page
-      navigate('/orders');
+      navigate('/profile');
     } catch (error) {
-      console.error('Checkout failed:', error);
-      toast({
-        title: "Checkout failed",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
+      // Errors handled in onError; keep catch to avoid unhandled rejections
+      // eslint-disable-next-line no-console
+      console.error('An error occurred during checkout:', error);
     }
   };
 
@@ -332,9 +343,9 @@ const Cart: React.FC = () => {
                 className="w-full" 
                 size="lg"
                 onClick={handleCheckout}
-                disabled={isProcessing || (deliveryType === 'delivery' && !deliveryAddress.trim())}
+                disabled={isProcessingOrder || (deliveryType === 'delivery' && !deliveryAddress.trim())}
               >
-                {isProcessing ? 'Processing...' : `Checkout - UGX ${finalTotal.toLocaleString()}`}
+                {isProcessingOrder ? 'Processing...' : `Checkout - UGX ${finalTotal.toLocaleString()}`}
               </Button>
             </CardContent>
           </Card>

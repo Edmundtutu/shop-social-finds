@@ -1,14 +1,14 @@
-import { Product } from "./products";
-import { Shop } from "./shops";
-import { User } from "./users";
+import type { Product } from "./products";
+import type { Shop } from "./shops";
+import type { AuthUser } from "./auth";
 
 export interface CreateOrderItemPayload {
-  product_id: number;
+  product_id: string; // ULID
   quantity: number;
 }
 
 export interface CreateOrderPayload {
-  shop_id: number;
+  shop_id: string; // ULID
   items: CreateOrderItemPayload[];
   delivery_address: string;
   delivery_lat: number;
@@ -19,7 +19,7 @@ export interface CreateOrderPayload {
 export interface OrderItem {
   id: number;
   order_id: number;
-  product_id: number;
+  product_id: string; // ULID
   quantity: number;
   price: number;
   created_at: string;
@@ -29,8 +29,8 @@ export interface OrderItem {
 
 export interface Order {
   id: number;
-  user_id: number;
-  shop_id: number;
+  user_id: string; // ULID
+  shop_id: string; // ULID
   total: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   delivery_address: string;
@@ -40,6 +40,6 @@ export interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
-  user?: User; // Nested user details for vendor orders
+  user?: AuthUser; // Nested user details for vendor orders
   shop?: Shop;
 }

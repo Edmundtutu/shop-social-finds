@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -13,12 +13,13 @@ import {
   Package
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Order, Review, Product } from '@/types';
+import { Review, Product } from '@/types';
+import OrderHistory from '@/components/customer/OrderHistory';
 import { useFavorites } from '@/context/FavoritesContext';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
+  // Orders are fetched via react-query in OrderHistory component
   const [reviews, setReviews] = useState<Review[]>([]);
   const { favoriteProducts, removeProductFromFavorites } = useFavorites();
   const [isLoading, setIsLoading] = useState(true);
@@ -26,7 +27,7 @@ const Profile: React.FC = () => {
   useEffect(() => {
     // TODO: Fetch user data from API (orders, reviews). Favorites are client-side
     setIsLoading(false);
-    setOrders([]);
+    // orders handled separately
     setReviews([]);
   }, []);
 
@@ -91,73 +92,15 @@ const Profile: React.FC = () => {
 
         {/* Orders Tab */}
         <TabsContent value="orders" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Order History</h2>
-            <p className="text-muted-foreground">{orders.length} orders</p>
-          </div>
-
-          {orders.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No orders yet</h3>
-                <p className="text-muted-foreground">
-                  Start shopping to see your order history here
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {orders.map((order) => (
-                <Card key={order.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="font-medium">Order #{order.id}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(order.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant={getStatusColor(order.status)}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </Badge>
-                        <p className="text-lg font-bold mt-1">${order.total.toFixed(2)}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 mb-4">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{order.shop.name}</span>
-                      <Badge variant="outline" className="ml-auto">
-                        {order.delivery_type}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-2">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between text-sm">
-                          <span>{item.product.name} × {item.quantity}</span>
-                          <span>${(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2 mt-4">
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                      {order.status === 'delivered' && (
-                        <Button variant="outline" size="sm">
-                          Reorder
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>My Orders</CardTitle>
+              <CardDescription>View your past orders and their status.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OrderHistory />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Reviews Tab */}

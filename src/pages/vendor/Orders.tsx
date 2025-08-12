@@ -1,21 +1,57 @@
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { ShoppingCart } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { getVendorOrders } from '@/services/orderService';
+import { Order } from '@/types/orders';
+import { Skeleton } from '@/components/ui/skeleton';
+import OrderCard from '@/components/shared/OrderCard';
 
 const VendorOrders: React.FC = () => {
+  const { data: orders, isLoading, isError } = useQuery<Order[]>({
+    queryKey: ['vendorOrders'],
+    queryFn: getVendorOrders,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <Skeleton className="h-8 w-48 mb-2" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6">Incoming Orders</h1>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Could not fetch vendor orders. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Orders</h1>
+    <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-6">Incoming Orders</h1>
       
-      <Card>
-        <CardContent className="p-8 text-center">
-          <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">No orders yet</h3>
-          <p className="text-muted-foreground">
-            When customers place orders, they'll appear here
-          </p>
-        </CardContent>
-      </Card>
+      {!orders || orders.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No orders found.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 auto-rows-fr">
+          {orders.map((order) => (
+            <OrderCard key={order.id} order={order} context="vendor" />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
