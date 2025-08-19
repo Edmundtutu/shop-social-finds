@@ -17,6 +17,11 @@ class InventoryNodeEdge extends Model
         'source_node_id', 
         'target_node_id', 
         'label',
+        'metadata'
+    ];
+
+    protected $casts = [
+        'metadata' => 'array'
     ];
 
     public function shop()

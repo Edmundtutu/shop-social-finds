@@ -23,8 +23,16 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/user', [AuthController::class, 'user']);
 
-        // Inventory react flow nodes routes
-        Route::get('/inventory/{vendor}/graph', [InventoryController::class, 'getGraph']);
+        // Inventory react flow nodes and edges routes
+        Route::get('/inventory/{shop}/graph', [InventoryController::class, 'getGraph']);
+        
+        Route::post('/inventory/nodes', [InventoryController::class, 'storeNode']);
+        Route::patch('/inventory/nodes/{node}', [InventoryController::class, 'updateNode'])->middleware('can:update,node');
+        Route::delete('/inventory/nodes/{node}', [InventoryController::class, 'destroyNode'])->middleware('can:delete,node');
+
+        Route::post('/inventory/edges', [InventoryController::class, 'storeEdge']);
+        Route::delete('/inventory/edges/{edge}', [InventoryController::class, 'destroyEdge'])->middleware('can:delete,edge');
+
         Route::patch('/nodes/{node}/position', [InventoryController::class, 'updateNodePosition'])->middleware('can:update,node');
     });
 
