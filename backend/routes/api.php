@@ -10,8 +10,9 @@ use App\Http\Controllers\Api\V1\FollowController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\CommentController;
 use App\Http\Controllers\Api\V1\ProductController;
-use App\Http\Controllers\Api\V1\PostCommentController;
+use App\Http\Controllers\API\V1\InventoryController;
 use App\Http\Controllers\Api\V1\CommentLikeController;
+use App\Http\Controllers\Api\V1\PostCommentController;
 
 Route::prefix('v1')->group(function () {
     // Authentication routes
@@ -21,6 +22,10 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/user', [AuthController::class, 'user']);
+
+        // Inventory react flow nodes routes
+        Route::get('/inventory/{vendor}/graph', [InventoryController::class, 'getGraph']);
+        Route::patch('/nodes/{node}/position', [InventoryController::class, 'updateNodePosition'])->middleware('can:update,node');
     });
 
     // Shop routes

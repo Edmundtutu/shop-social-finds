@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
  import { useQuery } from '@tanstack/react-query';
  import { productService } from '@/services/productService';
  import { useFavorites } from '@/context/FavoritesContext';
- import ProductCard from '@/components/ProductCard';
+ import ProductCard from '@/components/customer/discover/ProductCard';
 
 const Discover: React.FC = () => {
  const [searchParams] = useSearchParams();

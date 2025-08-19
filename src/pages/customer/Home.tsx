@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import PostItem from '@/components/PostItem';
+import PostItem from '@/components/customer/home/PostItem';
 import { postService } from '@/services/postService';
 import QuickStatsGrid from '@/components/customer/home/QuickStatsGrid';
 import CameraCapture from '@/components/features/CameraCapture';

@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUlids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Category;
+use App\Models\InventoryNode;
+use App\Models\InventoryNodeEdge;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Shop extends Model
 {
@@ -60,5 +63,20 @@ class Shop extends Model
     public function followers(): MorphToMany
     {
         return $this->morphToMany(User::class, 'followable', 'follows');
+    }
+
+    public function categories(): HasMany
+    {
+        return $this->hasMany(Category::class, 'shop_id');
+    }
+
+    public function inventoryNodes(): HasMany
+    {
+        return $this->hasMany(InventoryNode::class, 'shop_id');
+    }
+
+    public function inventoryNodeEdges(): HasMany
+    {
+        return $this->hasMany(InventoryNodeEdge::class);
     }
 }
