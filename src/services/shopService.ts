@@ -12,6 +12,7 @@ export const shopService = {
     radius?: number;
     search?: string;
     category?: string;
+    owner_id?: string | number;
     page?: number;
   }): Promise<LaravelPaginatedResponse<Shop>> {
     const formattedParams: any = {};
@@ -30,6 +31,9 @@ export const shopService = {
     }
     if (params?.page) {
       formattedParams['page'] = params.page;
+    }
+    if (params?.owner_id) {
+      formattedParams['owner_id'] = params.owner_id;
     }
 
     const response = await api.get(`${apiVersion}/shops`, { params: formattedParams });

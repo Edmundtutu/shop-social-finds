@@ -14,6 +14,7 @@ class InventoryNodeEdgeResource extends JsonResource
             'source_node_id' => $this->source_node_id,
             'target_node_id' => $this->target_node_id,
             'label' => $this->label,
+            'metadata' => $this->metadata,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'source_node' => new InventoryNodeResource($this->whenLoaded('sourceNode')),

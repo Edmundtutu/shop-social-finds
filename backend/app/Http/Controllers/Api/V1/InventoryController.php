@@ -14,6 +14,7 @@ use App\Http\Resources\Api\V1\InventoryNodeResource;
 use App\Http\Resources\Api\V1\InventoryNodeEdgeResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Shop;
 
 class InventoryController extends Controller
 {
@@ -43,6 +44,10 @@ class InventoryController extends Controller
             'icon' => 'nullable|string|max:64',
             'metadata' => 'nullable|array',
         ]);
+
+        // Authorize shop ownership
+        $shop = Shop::findOrFail($validated['shop_id']);
+        $this->authorize('update', $shop);
 
         $node = InventoryNode::create($validated);
         event(new NodeCreated($node));
@@ -100,6 +105,17 @@ class InventoryController extends Controller
         // Ensure source_node_id !== target_node_id
         if ($validated['source_node_id'] === $validated['target_node_id']) {
             return response()->json(['message' => 'Source and target nodes cannot be the same.'], 422);
+        }
+
+        // Authorize shop ownership
+        $shop = Shop::findOrFail($validated['shop_id']);
+        $this->authorize('update', $shop);
+
+        // Ensure source and target nodes belong to the same shop
+        $sourceShopId = InventoryNode::where('id', $validated['source_node_id'])->value('shop_id');
+        $targetShopId = InventoryNode::where('id', $validated['target_node_id'])->value('shop_id');
+        if ($sourceShopId !== $validated['shop_id'] || $targetShopId !== $validated['shop_id']) {
+            return response()->json(['message' => 'Source and target nodes must belong to the same shop.'], 422);
         }
 
         $edge = InventoryNodeEdge::create($validated);

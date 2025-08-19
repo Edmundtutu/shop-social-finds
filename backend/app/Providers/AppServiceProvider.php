@@ -11,6 +11,8 @@ use App\Models\Review;
 use App\Models\Comment;
 use App\Models\Product;
 use App\Policies\NodePolicy;
+use App\Models\InventoryNodeEdge;
+use App\Policies\Api\V1\EdgePolicy;
 use App\Models\InventoryNode;
 use Illuminate\Support\Facades\DB;
 use App\Policies\Api\V1\LikePolicy;
@@ -71,5 +73,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Like::class, LikePolicy::class);
         Gate::policy(Follow::class, FollowPolicy::class);
         Gate::policy(InventoryNode::class, NodePolicy::class);
+        Gate::policy(InventoryNodeEdge::class, EdgePolicy::class);
     }
 }

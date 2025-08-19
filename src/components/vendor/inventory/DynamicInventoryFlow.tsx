@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   addEdge,
@@ -23,9 +23,14 @@ import { InventoryStats } from './InventoryStats';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, Grid3X3, Layers, Settings, Plus, Square, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, EyeOff, Grid3X3, Layers, Settings, Plus, Square } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import inventoryService from '@/services/inventoryService';
+import { getEcho } from '@/services/realtime';
+
+type ApiNode = import('@/services/inventoryService').InventoryNode;
+type ApiEdge = import('@/services/inventoryService').InventoryNodeEdge;
 
 const nodeTypes = {
   ingredient: IngredientNode,
@@ -211,9 +216,14 @@ const initialEdges: Edge[] = [
   { id: 'e-mod-prod-4', source: 'mod-3', target: 'prod-3', type: 'price', data: { relationship: 'modifies' } },
 ];
 
-export function DynamicInventoryFlow() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+interface Props {
+  shopId: string;
+  initialGraph: { nodes: ApiNode[]; edges: ApiEdge[] };
+}
+
+export function DynamicInventoryFlow({ shopId, initialGraph }: Props) {
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedNodeType, setSelectedNodeType] = useState<string>('product');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [activeZone, setActiveZone] = useState<string>('all');
@@ -228,27 +238,45 @@ export function DynamicInventoryFlow() {
   const [editingLayerName, setEditingLayerName] = useState<string | null>(null);
 
   const onConnect = useCallback(
-    (params: Connection) => {
-      const newEdge: Edge = {
+    async (params: Connection) => {
+      // optimistic add
+      const optimistic: Edge = {
         ...params,
         id: `e-${params.source}-${params.target}`,
         type: 'price',
-        data: { relationship: 'custom' }
-      };
-      setEdges((eds) => addEdge(newEdge, eds));
+        data: {},
+      } as Edge;
+      setEdges((eds) => addEdge(optimistic, eds));
+      try {
+        await inventoryService.createEdge(
+          shopId,
+          params.source!,
+          params.target!,
+          null,
+          {}
+        );
+      } catch (e) {
+        // revert on error
+        setEdges((eds) => eds.filter((e2) => e2.id !== optimistic.id));
+      }
     },
-    [setEdges]
+    [setEdges, shopId]
   );
 
-  const addNode = useCallback((type: string) => {
-    const newNode: Node = {
-      id: `${type}-${Date.now()}`,
-      type,
-      position: { x: Math.random() * 400 + 100, y: Math.random() * 200 + 300 },
-      data: getDefaultNodeData(type),
-    };
+  const addNode = useCallback(async (type: string) => {
+    const pos = { x: Math.round(Math.random() * 400 + 100), y: Math.round(Math.random() * 200 + 300) };
+    // optimistic local
+    const tempId = `${type}-${Date.now()}`;
+    const newNode: Node = { id: tempId, type, position: pos, data: getDefaultNodeData(type) };
     setNodes((nds) => nds.concat(newNode));
-  }, [setNodes]);
+    try {
+      const created = await inventoryService.createNode(shopId, type as any, pos.x, pos.y, newNode.data as any);
+      // replace temp with server id
+      setNodes((nds) => nds.map(n => n.id === tempId ? mapApiNodeToFlow(created) : n));
+    } catch (e) {
+      setNodes((nds) => nds.filter(n => n.id !== tempId));
+    }
+  }, [setNodes, shopId]);
 
   const updateNodeData = useCallback((nodeId: string, newData: any) => {
     setNodes((nds) =>
@@ -429,6 +457,51 @@ export function DynamicInventoryFlow() {
   const handleResizeEnd = useCallback(() => {
     setResizingLayer(null);
   }, []);
+
+  // Initialize from API graph
+  useEffect(() => {
+    const mappedNodes = (initialGraph.nodes ?? []).map(mapApiNodeToFlow);
+    const mappedEdges = (initialGraph.edges ?? []).map(mapApiEdgeToFlow);
+    setNodes(mappedNodes);
+    setEdges(mappedEdges);
+  }, [initialGraph, setNodes, setEdges]);
+
+  // Subscribe to realtime updates
+  useEffect(() => {
+    const echo = getEcho();
+    const channel = echo.private(`shopInventory.${shopId}`);
+
+    channel.listen('.node.created', (payload: ApiNode) => {
+      setNodes((nds) => nds.concat(mapApiNodeToFlow(payload)));
+    });
+    channel.listen('.node.updated', (payload: ApiNode) => {
+      setNodes((nds) => nds.map(n => n.id === payload.id ? mapApiNodeToFlow(payload) : n));
+    });
+    channel.listen('.node.deleted', (payload: { id: string }) => {
+      setNodes((nds) => nds.filter(n => n.id !== payload.id));
+      setEdges((eds) => eds.filter(e => e.source !== payload.id && e.target !== payload.id));
+    });
+    channel.listen('.node.position.updated', (payload: { id: string; x: number; y: number }) => {
+      setNodes((nds) => nds.map(n => n.id === payload.id ? { ...n, position: { x: payload.x, y: payload.y } } : n));
+    });
+    channel.listen('.edge.created', (payload: ApiEdge) => {
+      setEdges((eds) => addEdge(mapApiEdgeToFlow(payload), eds));
+    });
+    channel.listen('.edge.deleted', (payload: { id: string }) => {
+      setEdges((eds) => eds.filter(e => e.id !== payload.id));
+    });
+
+    return () => {
+      try { channel.stopListening('.node.created'); } catch {}
+      try { channel.stopListening('.node.updated'); } catch {}
+      try { channel.stopListening('.node.deleted'); } catch {}
+      try { channel.stopListening('.node.position.updated'); } catch {}
+      try { channel.stopListening('.edge.created'); } catch {}
+      try { channel.stopListening('.edge.deleted'); } catch {}
+      // @ts-ignore
+      try { echo.leave(`private-shopInventory.${shopId}`); } catch {}
+    };
+  }, [shopId, setNodes, setEdges]);
   // Calculate preview layer dimensions
   const previewLayer = useMemo(() => {
     if (!isCreatingLayer || !dragStart || !currentMousePos) return null;
@@ -566,8 +639,26 @@ export function DynamicInventoryFlow() {
           <ReactFlow
             nodes={filteredNodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={(changes) => {
+              onNodesChange(changes);
+              // persist position updates when dragging stops
+              changes.forEach((c) => {
+                if (c.type === 'position' && c.dragging === false && c.id) {
+                  const n = nodes.find(n => n.id === c.id);
+                  if (n) {
+                    inventoryService.updateNodePosition(c.id, Math.round(n.position.x), Math.round(n.position.y)).catch(() => {});
+                  }
+                }
+              });
+            }}
+            onEdgesChange={(changes) => {
+              onEdgesChange(changes);
+              changes.forEach((c: any) => {
+                if (c.type === 'remove' && c.id) {
+                  inventoryService.deleteEdge(c.id).catch(() => {});
+                }
+              });
+            }}
             onConnect={onConnect}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
@@ -783,32 +874,6 @@ export function DynamicInventoryFlow() {
         </div>
       </div>
 
-      {/* Layer Creation Instructions */}
-      {activeTool === 'layer' && (
-        <div className="absolute top-4 left-4 z-50 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div 
-              className="w-4 h-4 rounded border-2 border-dashed"
-              style={{ 
-                backgroundColor: selectedLayerColor,
-                borderColor: selectedLayerColor 
-              }}
-            />
-            <span className="text-sm font-medium text-foreground">Layer Tool Active</span>
-          </div>
-          <p className="text-xs text-muted-foreground mb-1">
-            {isCreatingLayer 
-              ? 'Release to create layer' 
-              : 'Click and drag to create a colored layer'
-            }
-          </p>
-          {previewLayer && (
-            <p className="text-xs text-primary font-medium">
-              Size: {Math.round(previewLayer.width)} × {Math.round(previewLayer.height)}px
-            </p>
-          )}j
-        </div>
-      )}
     {/* Layer Creation Instructions */}
     {activeTool === 'layer' && (
       <div className="absolute top-4 left-4 z-50 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-4">
@@ -894,4 +959,29 @@ function getDefaultNodeData(type: string) {
     default:
       return {};
   }
+}
+
+function mapApiNodeToFlow(n: ApiNode): Node {
+  const data: any = {
+    label: n.display_name ?? n.metadata?.label ?? n.entity_type,
+    color: n.color_code ?? n.metadata?.color,
+    image: n.icon ?? n.metadata?.image,
+    ...n.metadata,
+  };
+  return {
+    id: n.id,
+    type: n.entity_type as any,
+    position: { x: n.x, y: n.y },
+    data,
+  };
+}
+
+function mapApiEdgeToFlow(e: ApiEdge): Edge {
+  return {
+    id: e.id,
+    source: e.source_node_id,
+    target: e.target_node_id,
+    type: 'price',
+    data: e.metadata ?? {},
+  } as Edge;
 }

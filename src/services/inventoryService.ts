@@ -26,11 +26,14 @@ export interface GraphData {
   nodes: InventoryNode[];
   edges: InventoryNodeEdge[];
 }
-
+const apiVersion = import.meta.env.VITE_API_VERSION;
 const inventoryService = {
   async getGraph(shopId: string): Promise<GraphData> {
-    const response = await api.get(`/v1/inventory/${shopId}/graph`);
-    return response.data;
+    const response = await api.get(`${apiVersion}/inventory/${shopId}/graph`);
+    const payload = response.data as any;
+    const nodes = Array.isArray(payload.nodes) ? payload.nodes : (payload.nodes?.data ?? []);
+    const edges = Array.isArray(payload.edges) ? payload.edges : (payload.edges?.data ?? []);
+    return { nodes, edges } as GraphData;
   },
 
   async createNode(
@@ -50,7 +53,7 @@ const inventoryService = {
       icon: data.image || null,
       metadata: data,
     };
-    const response = await api.post(`/v1/inventory/nodes`, payload);
+    const response = await api.post(`${apiVersion}/inventory/nodes`, payload);
     return response.data.data; // Laravel resources often wrap data in a 'data' key
   },
 
@@ -65,16 +68,16 @@ const inventoryService = {
       metadata?: Record<string, any>;
     }
   ): Promise<InventoryNode> {
-    const response = await api.patch(`/v1/inventory/nodes/${nodeId}`, updates);
+    const response = await api.patch(`${apiVersion}/inventory/nodes/${nodeId}`, updates);
     return response.data.data;
   },
 
   async updateNodePosition(nodeId: string, x: number, y: number): Promise<void> {
-    await api.patch(`/v1/nodes/${nodeId}/position`, { x, y });
+    await api.patch(`${apiVersion}/nodes/${nodeId}/position`, { x, y });
   },
 
   async deleteNode(nodeId: string): Promise<void> {
-    await api.delete(`/v1/inventory/nodes/${nodeId}`);
+    await api.delete(`${apiVersion}/inventory/nodes/${nodeId}`);
   },
 
   async createEdge(
@@ -91,12 +94,12 @@ const inventoryService = {
       label: label,
       metadata: data,
     };
-    const response = await api.post(`/v1/inventory/edges`, payload);
+    const response = await api.post(`${apiVersion}/inventory/edges`, payload);
     return response.data.data;
   },
 
   async deleteEdge(edgeId: string): Promise<void> {
-    await api.delete(`/v1/inventory/edges/${edgeId}`);
+    await api.delete(`${apiVersion}/inventory/edges/${edgeId}`);
   },
 };
 

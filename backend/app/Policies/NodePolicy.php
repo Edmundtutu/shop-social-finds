@@ -37,7 +37,7 @@ class NodePolicy
      */
     public function update(User $user, InventoryNode $inventoryNode): bool
     {
-        return $user->id ===  $inventoryNode->shop_id;
+        return optional($inventoryNode->shop)->owner_id === $user->id;
     }
 
     /**
@@ -45,7 +45,7 @@ class NodePolicy
      */
     public function delete(User $user, InventoryNode $inventoryNode): bool
     {
-        return $user->id ===  $inventoryNode->shop_id;
+        return optional($inventoryNode->shop)->owner_id === $user->id;
     }
 
     /**
