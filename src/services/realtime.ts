@@ -1,4 +1,5 @@
 import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
 
 let echoInstance: Echo<any> | null = null;
 
@@ -10,6 +11,11 @@ export function getEcho(): Echo<any> {
   const port = import.meta.env.VITE_REVERB_PORT ?? 80;
   const scheme = import.meta.env.VITE_REVERB_SCHEME ?? 'https';
   const token = localStorage.getItem('auth-token');
+
+  // Ensure Pusher client is globally available for Echo
+  if (typeof window !== 'undefined' && !(window as any).Pusher) {
+    (window as any).Pusher = Pusher;
+  }
 
   echoInstance = new Echo({
     broadcaster: 'reverb',
