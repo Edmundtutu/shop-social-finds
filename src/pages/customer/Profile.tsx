@@ -19,7 +19,7 @@ import { useFavorites } from '@/context/FavoritesContext';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
-  // Orders are fetched via react-query in OrderHistory component
+  // OrderHandlers are fetched via react-query in OrderHistory component
   const [reviews, setReviews] = useState<Review[]>([]);
   const { favoriteProducts, removeProductFromFavorites } = useFavorites();
   const [isLoading, setIsLoading] = useState(true);
@@ -90,7 +90,7 @@ const Profile: React.FC = () => {
           <TabsTrigger value="settings" className="text-xs sm:text-sm px-2 py-2">Settings</TabsTrigger>
         </TabsList>
 
-        {/* Orders Tab */}
+        {/* OrderHandlers Tab */}
         <TabsContent value="orders" className="space-y-4">
           <Card>
             <CardHeader>

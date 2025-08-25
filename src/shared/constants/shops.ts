@@ -1,5 +1,5 @@
 export const SHOP_CATEGORIES = [
-  { value: 'all', label: 'All Shops' },
+  { value: 'all', label: 'All ShopHandlers' },
   { value: 'electronics', label: 'Electronics' },
   { value: 'fashion', label: 'Fashion' },
   { value: 'food', label: 'Food & Grocery' },

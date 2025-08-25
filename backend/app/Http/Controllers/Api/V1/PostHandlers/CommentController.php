@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api\V1\PostHandlers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreCommentRequest;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
-    
+
     /**
      * Display a listing of the resource.
      */

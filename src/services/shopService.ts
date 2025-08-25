@@ -5,7 +5,7 @@ import type { LaravelPaginatedResponse } from '@/types/api';
 const apiVersion = import.meta.env.VITE_API_VERSION;
 
 export const shopService = {
-  // Shops
+  // ShopHandlers
   async getShops(params?: {
     lat?: number;
     lng?: number;
@@ -143,7 +143,7 @@ export const shopService = {
     return response.data ?? [];
   },
 
-  // Orders
+  // OrderHandlers
   async getOrders(params?: {
     status?: string;
     shop_id?: number;
@@ -195,7 +195,7 @@ export const shopService = {
     return response.data.data;
   },
 
-  // Posts (Social Feed)
+  // PostHandlers (Social Feed)
   async getPosts(params?: { page?: number }): Promise<PaginatedResponse<Post>> {
     const response = await api.get<PaginatedResponse<Post>>(`${apiVersion}/posts`, { params });
     return response.data;

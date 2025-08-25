@@ -55,6 +55,13 @@ export const productService = {
     return (response.data as any).data ?? (response.data as any);
   },
 
+  async attachCategories(productId: string, categoryIds: string[]): Promise<Product> {
+    const response = await api.put<ApiResponse<Product>>(`${apiVersion}/products/${productId}`, {
+      category_ids: categoryIds,
+    });
+    return (response.data as any).data ?? (response.data as any);
+  },
+
   async getProductReviews(productId: string): Promise<Review[]> {
     const response = await api.get(`${apiVersion}/reviews`, {
       params: { product_id: productId },

@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api\V1\OrderHandlers;
 
-use App\Models\Shop;
-use App\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Http\Filters\V1\ProductFilter;
-use App\Http\Resources\Api\V1\ProductResource;
-use Illuminate\Http\Request;
 use App\Http\Requests\Api\V1\StoreProductRequest;
 use App\Http\Requests\Api\V1\UpdateProductRequest;
+use App\Http\Resources\Api\V1\ProductResource;
+use App\Models\Product;
+use App\Models\Shop;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
@@ -63,7 +63,13 @@ class ProductController extends Controller
 
         $this->authorize('create', [Product::class, $shop]);
 
+        $categoryIds = $validated['category_ids'] ?? [];
+        unset($validated['category_ids']);
+
         $product = Product::create($validated);
+        if (!empty($categoryIds)) {
+            $product->categories()->sync($categoryIds);
+        }
 
         return new ProductResource($product);
     }
@@ -77,7 +83,13 @@ class ProductController extends Controller
     {
         $this->authorize('update', $product);
 
-        $product->update($request->validated());
+        $validated = $request->validated();
+        $categoryIds = $validated['category_ids'] ?? null;
+        unset($validated['category_ids']);
+        $product->update($validated);
+        if (is_array($categoryIds)) {
+            $product->categories()->sync($categoryIds);
+        }
 
         return new ProductResource($product);
     }

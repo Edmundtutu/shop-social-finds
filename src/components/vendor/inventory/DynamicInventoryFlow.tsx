@@ -26,7 +26,13 @@ import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, Grid3X3, Layers, Settings, Plus, Square } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import inventoryService from '@/services/inventoryService';
+import { categoryService } from '@/services/categoryService';
+import { productService } from '@/services/productService';
+import { modificationService } from '@/services/modificationService';
+import { addonService } from '@/services/addonService';
 import { getEcho } from '@/services/realtime';
 
 type ApiNode = import('@/services/inventoryService').InventoryNode;
@@ -236,41 +242,96 @@ export function DynamicInventoryFlow({ shopId, initialGraph }: Props) {
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [resizingLayer, setResizingLayer] = useState<{ layerId: string; handle: string } | null>(null);
   const [editingLayerName, setEditingLayerName] = useState<string | null>(null);
+  
+  // Dialog states for modification and addon creation
+  const [showModificationDialog, setShowModificationDialog] = useState(false);
+  const [showAddonDialog, setShowAddonDialog] = useState(false);
+  const [selectedProductForMod, setSelectedProductForMod] = useState<string>('');
+  const [modificationData, setModificationData] = useState({ name: '', cost: 0 });
+  const [addonData, setAddonData] = useState({ name: '', price: 0 });
 
   const onConnect = useCallback(
     async (params: Connection) => {
+      // Determine relationship based on node types
+      const source = nodes.find(n => n.id === params.source);
+      const target = nodes.find(n => n.id === params.target);
+      
+      let relationship = 'contains'; // default
+      if (source?.type === 'category' && target?.type === 'product') {
+        relationship = 'contains';
+      } else if (source?.type === 'modifier' && target?.type === 'product') {
+        relationship = 'modifies';
+      } else if (source?.type === 'addon' && target?.type === 'product') {
+        relationship = 'adds';
+      } else if (source?.type === 'product' && target?.type === 'modifier') {
+        relationship = 'modifies';
+      } else if (source?.type === 'product' && target?.type === 'addon') {
+        relationship = 'adds';
+      }
+
       // optimistic add
       const optimistic: Edge = {
         ...params,
         id: `e-${params.source}-${params.target}`,
         type: 'price',
-        data: {},
+        data: { relationship },
       } as Edge;
       setEdges((eds) => addEdge(optimistic, eds));
       try {
+        // If connecting a category node to a product node, sync category_ids on backend
+        const categoryNode = source?.type === 'category' ? source : (target?.type === 'category' ? target : undefined);
+        const productNode = source?.type === 'product' ? source : (target?.type === 'product' ? target : undefined);
+
+        if (categoryNode && productNode) {
+          // Fetch existing categories for the product is not available; rely on echo sync or assume add
+          const catId = (categoryNode as any).data?.entity_id ?? categoryNode.id;
+          const prodId = productNode.id; // Inventory node id; backend expects product id
+          // If entity_id for product nodes is available in metadata, prefer that
+          const productEntityId = (productNode as any).data?.entity_id ?? prodId;
+          await productService.attachCategories(productEntityId, [catId]);
+        }
         await inventoryService.createEdge(
           shopId,
           params.source!,
           params.target!,
           null,
-          {}
+          { relationship }
         );
       } catch (e) {
         // revert on error
         setEdges((eds) => eds.filter((e2) => e2.id !== optimistic.id));
       }
     },
-    [setEdges, shopId]
+    [setEdges, shopId, nodes]
   );
 
   const addNode = useCallback(async (type: string) => {
+    // Handle special cases for modification and addon
+    if (type === 'modifier') {
+      setShowModificationDialog(true);
+      return;
+    }
+    if (type === 'addon') {
+      setShowAddonDialog(true);
+      return;
+    }
+
     const pos = { x: Math.round(Math.random() * 400 + 100), y: Math.round(Math.random() * 200 + 300) };
     // optimistic local
     const tempId = `${type}-${Date.now()}`;
     const newNode: Node = { id: tempId, type, position: pos, data: getDefaultNodeData(type) };
     setNodes((nds) => nds.concat(newNode));
     try {
-      const created = await inventoryService.createNode(shopId, type as any, pos.x, pos.y, newNode.data as any);
+      let entityType = type;
+      let dataToPersist = newNode.data as any;
+
+      // if creating a category, first create the Category entity, then create node with entity_id and display_name
+      if (type === 'category') {
+        const createdCategory = await categoryService.create(shopId, dataToPersist.label ?? 'New Category');
+        dataToPersist = { ...dataToPersist, entity_id: createdCategory.id };
+      }
+
+      const created = await inventoryService.createNode(shopId, entityType as any, pos.x, pos.y, dataToPersist);
       // replace temp with server id
       setNodes((nds) => nds.map(n => n.id === tempId ? mapApiNodeToFlow(created) : n));
     } catch (e) {
@@ -874,29 +935,29 @@ export function DynamicInventoryFlow({ shopId, initialGraph }: Props) {
         </div>
       </div>
 
-    {/* Layer Creation Instructions */}
-    {activeTool === 'layer' && (
-      <div className="absolute top-4 left-4 z-50 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <div 
-            className="w-4 h-4 rounded border-2 border-dashed"
-            style={{ 
-              backgroundColor: selectedLayerColor,
-              borderColor: selectedLayerColor 
-            }}
-          />
-          <span className="text-sm font-medium text-foreground">Layer Tool Active</span>
-        </div>
-        <p className="text-xs text-muted-foreground mb-1">
-          {isCreatingLayer 
-            ? 'Release to create layer' 
-            : 'Click and drag to create a colored layer'
-          }
-        </p>
-        {previewLayer && (
-          <p className="text-xs text-primary font-medium">
-            Size: {Math.round(previewLayer.width)} × {Math.round(previewLayer.height)}px
+      {/* Layer Creation Instructions */}
+      {activeTool === 'layer' && (
+        <div className="absolute top-4 left-4 z-50 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div 
+              className="w-4 h-4 rounded border-2 border-dashed"
+              style={{ 
+                backgroundColor: selectedLayerColor,
+                borderColor: selectedLayerColor 
+              }}
+            />
+            <span className="text-sm font-medium text-foreground">Layer Tool Active</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-1">
+            {isCreatingLayer 
+              ? 'Release to create layer' 
+              : 'Click and drag to create a colored layer'
+            }
           </p>
+          {previewLayer && (
+            <p className="text-xs text-primary font-medium">
+              Size: {Math.round(previewLayer.width)} × {Math.round(previewLayer.height)}px
+            </p>
         )}
       </div>
     )}
@@ -922,6 +983,224 @@ export function DynamicInventoryFlow({ shopId, initialGraph }: Props) {
         </div>
       </div>
     )}
+    {/* Modification Creation Dialog */}
+    <Dialog open={showModificationDialog} onOpenChange={setShowModificationDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Modification</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="product-select">Product</Label>
+            <Select value={selectedProductForMod} onValueChange={setSelectedProductForMod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a product" />
+              </SelectTrigger>
+              <SelectContent>
+                {nodes.filter(n => n.type === 'product').map(product => (
+                  <SelectItem key={product.id} value={product.id}>
+                    {(product.data as any)?.label || 'Unnamed Product'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="mod-name">Name</Label>
+            <Input
+              id="mod-name"
+              value={modificationData.name}
+              onChange={(e) => setModificationData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="e.g., Extra Spicy"
+            />
+          </div>
+          <div>
+            <Label htmlFor="mod-cost">Cost</Label>
+            <Input
+              id="mod-cost"
+              type="number"
+              step="0.01"
+              value={modificationData.cost}
+              onChange={(e) => setModificationData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
+              placeholder="0.00"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              onClick={async () => {
+                if (!selectedProductForMod || !modificationData.name) return;
+                
+                try {
+                  // Create the modification entity
+                  const productEntityId = (nodes.find(n => n.id === selectedProductForMod) as any)?.data?.entity_id ?? selectedProductForMod;
+                  const createdMod = await modificationService.create(productEntityId, modificationData.name, modificationData.cost);
+                  
+                  // Create the Inventory node
+                  const pos = { x: Math.round(Math.random() * 400 + 100), y: Math.round(Math.random() * 200 + 300) };
+                  const tempId = `modifier-${Date.now()}`;
+                  const newNode: Node = { 
+                    id: tempId, 
+                    type: 'modifier', 
+                    position: pos, 
+                    data: { 
+                      label: modificationData.name,
+                      cost: modificationData.cost,
+                      entity_id: createdMod.id
+                    } 
+                  };
+                  setNodes((nds) => nds.concat(newNode));
+                  
+                  const createdNode = await inventoryService.createNode(shopId, 'modification', pos.x, pos.y, { 
+                    label: modificationData.name,
+                    cost: modificationData.cost,
+                    entity_id: createdMod.id
+                  });
+                  
+                  // Replace temp with server id
+                  setNodes((nds) => nds.map(n => n.id === tempId ? mapApiNodeToFlow(createdNode) : n));
+                  
+                  // Create edge to product
+                  const edgeTempId = `e-${createdNode.id}-${selectedProductForMod}`;
+                  const optimisticEdge: Edge = {
+                    id: edgeTempId,
+                    source: createdNode.id,
+                    target: selectedProductForMod,
+                    type: 'price',
+                    data: { relationship: 'modifies' }
+                  } as Edge;
+                  setEdges((eds) => addEdge(optimisticEdge, eds));
+                  
+                  await inventoryService.createEdge(shopId, createdNode.id, selectedProductForMod, null, { relationship: 'modifies' });
+                  
+                  // Reset form
+                  setModificationData({ name: '', cost: 0 });
+                  setSelectedProductForMod('');
+                  setShowModificationDialog(false);
+                } catch (e) {
+                  console.error('Failed to create modification:', e);
+                }
+              }}
+              disabled={!selectedProductForMod || !modificationData.name}
+            >
+              Create Modification
+            </Button>
+            <Button variant="outline" onClick={() => setShowModificationDialog(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Addon Creation Dialog */}
+    <Dialog open={showAddonDialog} onOpenChange={setShowAddonDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Addon</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="addon-product-select">Product</Label>
+            <Select value={selectedProductForMod} onValueChange={setSelectedProductForMod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a product" />
+              </SelectTrigger>
+              <SelectContent>
+                {nodes.filter(n => n.type === 'product').map(product => (
+                  <SelectItem key={product.id} value={product.id}>
+                    {(product.data as any)?.label || 'Unnamed Product'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="addon-name">Name</Label>
+            <Input
+              id="addon-name"
+              value={addonData.name}
+              onChange={(e) => setAddonData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="e.g., Extra Cheese"
+            />
+          </div>
+          <div>
+            <Label htmlFor="addon-price">Price</Label>
+            <Input
+              id="addon-price"
+              type="number"
+              step="0.01"
+              value={addonData.price}
+              onChange={(e) => setAddonData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+              placeholder="0.00"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              onClick={async () => {
+                if (!selectedProductForMod || !addonData.name) return;
+                
+                try {
+                  // Create the addon entity
+                  const productEntityId = (nodes.find(n => n.id === selectedProductForMod) as any)?.data?.entity_id ?? selectedProductForMod;
+                  const createdAddon = await addonService.create(productEntityId, addonData.name, addonData.price);
+                  
+                  // Create the Inventory node
+                  const pos = { x: Math.round(Math.random() * 400 + 100), y: Math.round(Math.random() * 200 + 300) };
+                  const tempId = `addon-${Date.now()}`;
+                  const newNode: Node = { 
+                    id: tempId, 
+                    type: 'addon', 
+                    position: pos, 
+                    data: { 
+                      label: addonData.name,
+                      price: addonData.price,
+                      entity_id: createdAddon.id
+                    } 
+                  };
+                  setNodes((nds) => nds.concat(newNode));
+                  
+                  const createdNode = await inventoryService.createNode(shopId, 'addon', pos.x, pos.y, { 
+                    label: addonData.name,
+                    price: addonData.price,
+                    entity_id: createdAddon.id
+                  });
+                  
+                  // Replace temp with server id
+                  setNodes((nds) => nds.map(n => n.id === tempId ? mapApiNodeToFlow(createdNode) : n));
+                  
+                  // Create edge to product
+                  const edgeTempId = `e-${createdNode.id}-${selectedProductForMod}`;
+                  const optimisticEdge: Edge = {
+                    id: edgeTempId,
+                    source: createdNode.id,
+                    target: selectedProductForMod,
+                    type: 'price',
+                    data: { relationship: 'adds' }
+                  } as Edge;
+                  setEdges((eds) => addEdge(optimisticEdge, eds));
+                  
+                  await inventoryService.createEdge(shopId, createdNode.id, selectedProductForMod, null, { relationship: 'adds' });
+                  
+                  // Reset form
+                  setAddonData({ name: '', price: 0 });
+                  setSelectedProductForMod('');
+                  setShowAddonDialog(false);
+                } catch (e) {
+                  console.error('Failed to create addon:', e);
+                }
+              }}
+              disabled={!selectedProductForMod || !addonData.name}
+            >
+              Create Addon
+            </Button>
+            <Button variant="outline" onClick={() => setShowAddonDialog(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
     {/* Close main container div */}
   </div>
   );

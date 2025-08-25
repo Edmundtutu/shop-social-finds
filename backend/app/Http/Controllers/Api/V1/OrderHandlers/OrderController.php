@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api\V1\OrderHandlers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreOrderRequest;
@@ -9,7 +9,6 @@ use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller

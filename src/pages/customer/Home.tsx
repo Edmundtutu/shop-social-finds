@@ -52,7 +52,7 @@ const Home: React.FC = () => {
 
       <QuickStatsGrid />
 
-      {/* Post creation removed per new requirement: must be initiated from Orders */}
+      {/* Post creation removed per new requirement: must be initiated from OrderHandlers */}
 
       {/* Full-Page Camera Modal */}
       {imageCapture.showCameraModal && (
@@ -80,7 +80,7 @@ const Home: React.FC = () => {
               <Button asChild>
                 <Link to="/discover">Discover Products</Link>
               </Button>
-              {/* Creation moved to Orders tab; remove CTA from Home */}
+              {/* Creation moved to OrderHandlers tab; remove CTA from Home */}
             </div>
           </CardContent>
         </Card>

@@ -1,20 +1,20 @@
 <?php
 
-namespace App\Http\Controllers\API\V1;
+namespace App\Http\Controllers\Api\V1\ShopHandlers\Inventory;
 
-use App\Models\InventoryNode;
-use App\Models\InventoryNodeEdge;
-use App\Events\NodeCreated;
-use App\Events\NodeUpdated;
-use App\Events\NodeDeleted;
 use App\Events\EdgeCreated;
 use App\Events\EdgeDeleted;
+use App\Events\NodeCreated;
+use App\Events\NodeDeleted;
+use App\Events\NodeUpdated;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Api\V1\InventoryNodeResource;
 use App\Http\Resources\Api\V1\InventoryNodeEdgeResource;
+use App\Http\Resources\Api\V1\InventoryNodeResource;
+use App\Models\InventoryNode;
+use App\Models\InventoryNodeEdge;
+use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\Shop;
 
 class InventoryController extends Controller
 {
@@ -24,18 +24,18 @@ class InventoryController extends Controller
         $edges = InventoryNodeEdge::with(['sourceNode', 'targetNode'])
             ->where('shop_id', $shopId)
             ->get();
-            
+
         return response()->json([
             'nodes' => InventoryNodeResource::collection($nodes),
             'edges' => InventoryNodeEdgeResource::collection($edges)
         ]);
     }
-    
+
     public function storeNode(Request $request)
     {
         $validated = $request->validate([
             'shop_id' => 'required|ulid|exists:shops,id',
-            'entity_type' => 'required|in:category,product,ingredient,modifier',
+            'entity_type' => 'required|in:category,product,modification,addon',
             'entity_id' => 'nullable|ulid',
             'x' => 'required|integer',
             'y' => 'required|integer',
@@ -58,7 +58,7 @@ class InventoryController extends Controller
     public function updateNode(Request $request, InventoryNode $node)
     {
         $this->authorize('update', $node);
-        
+
         $validated = $request->validate([
             'x' => 'sometimes|required|integer',
             'y' => 'sometimes|required|integer',
@@ -67,10 +67,10 @@ class InventoryController extends Controller
             'icon' => 'sometimes|nullable|string|max:64',
             'metadata' => 'sometimes|nullable|array',
         ]);
-        
+
         $node->update($validated);
         event(new NodeUpdated($node));
-        
+
         return new InventoryNodeResource($node);
     }
 
@@ -141,15 +141,15 @@ class InventoryController extends Controller
     public function updateNodePosition(Request $request, InventoryNode $node)
     {
         $this->authorize('update', $node);
-        
+
         $validated = $request->validate([
             'x' => 'required|integer',
             'y' => 'required|integer'
         ]);
-        
+
         $node->update($validated);
         event(new \App\Events\NodePositionUpdated($node));
-        
+
         return response()->json(['message' => 'Position updated']);
     }
 }

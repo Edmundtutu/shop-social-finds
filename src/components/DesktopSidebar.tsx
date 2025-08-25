@@ -42,7 +42,7 @@ const DesktopSidebar: React.FC = () => {
 
   const vendorNavItems: NavItem[] = [
     { name: 'Dashboard', href: '/vendor/dashboard', icon: BarChart3 },
-    { name: 'Inventory', href: '/vendor/inventory', icon: Package },
+    { name: 'Inventory', href: '/vendor/Inventory', icon: Package },
     { name: 'Orders', href: '/vendor/orders', icon: ShoppingCart },
     { name: 'Shop Profile', href: '/vendor/profile', icon: Store },
     { name: 'Account', href: '/vendor/account', icon: User },

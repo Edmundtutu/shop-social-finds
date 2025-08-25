@@ -20,8 +20,8 @@ export function DynamicToolbar({ onAddNode, selectedNodeType, onSelectNodeType }
   const nodeTypes = [
     { value: 'category', label: 'Category', icon: Folder, color: 'text-purple-500' },
     { value: 'product', label: 'Product', icon: Star, color: 'text-blue-500' },
-    { value: 'ingredient', label: 'Ingredient', icon: Package, color: 'text-green-500' },
-    { value: 'modifier', label: 'Modifier', icon: Settings, color: 'text-orange-500' },
+    { value: 'modification', label: 'Modification', icon: Settings, color: 'text-orange-500' },
+    // keep ingredients disabled per current backend scope
   ];
 
   const selectedType = nodeTypes.find(type => type.value === selectedNodeType);

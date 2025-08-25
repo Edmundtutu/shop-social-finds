@@ -38,7 +38,7 @@ const inventoryService = {
 
   async createNode(
     shopId: string,
-    type: 'category' | 'product' | 'ingredient' | 'modifier',
+    type: 'category' | 'product' | 'modification' | 'addon',
     x: number,
     y: number,
     data: Record<string, any>
@@ -46,6 +46,7 @@ const inventoryService = {
     const payload = {
       shop_id: shopId,
       entity_type: type,
+      entity_id: data.entity_id ?? null,
       x,
       y,
       display_name: data.label || null,

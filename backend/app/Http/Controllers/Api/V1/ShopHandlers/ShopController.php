@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api\V1\ShopHandlers;
 
-use App\Models\Shop;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Api\V1\ShopResource;
-use App\Http\Requests\Api\V1\StoreShopRequest;
 use App\Http\Filters\V1\ShopFilter;
+use App\Http\Requests\Api\V1\StoreShopRequest;
 use App\Http\Requests\Api\V1\UpdateShopRequest;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Resources\Api\V1\ShopResource;
+use App\Models\Shop;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ShopController extends Controller
 {

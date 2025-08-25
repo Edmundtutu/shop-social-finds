@@ -29,6 +29,8 @@ class StoreProductRequest extends FormRequest
             'stock' => 'required|integer|min:0',
             'images' => 'nullable|json',
             'tags' => 'nullable|json',
+            'category_ids' => 'sometimes|array',
+            'category_ids.*' => 'ulid|exists:categories,id',
         ];
     }
 }

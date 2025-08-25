@@ -59,6 +59,10 @@ const OrderHistory: React.FC = () => {
             context="customer"
             onStartPost={handleStartPost}
             isPostDisabled={false}
+            // Since the props are not important on this component then return null
+            onConfirm={null}
+            onOpenConversation={null}
+            onReject={null}
           />
         ))}
       </div>

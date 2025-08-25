@@ -105,7 +105,7 @@ const Cart: React.FC = () => {
       await Promise.all(orderCreationPromises);
       clearCart();
       toast({
-        title: 'Orders placed successfully!',
+        title: 'OrderHandlers placed successfully!',
         description: 'You can view your orders in your profile.',
       });
       navigate('/profile');

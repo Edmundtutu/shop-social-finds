@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('inventory_node_edges', function (Blueprint $table) {
-            //
+            if (!Schema::hasColumn('inventory_node_edges', 'metadata')) {
+                $table->json('metadata')->nullable()->after('label');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('inventory_node_edges', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('inventory_node_edges', 'metadata')) {
+                $table->dropColumn('metadata');
+            }
         });
     }
 };

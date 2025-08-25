@@ -733,7 +733,7 @@ const ShopMap: React.FC<ShopMapProps> = ({
               </Card>
             )}
 
-            {/* Nearby Shops List */}
+            {/* Nearby ShopHandlers List */}
             <Card>
               <CardContent className="p-4">
                 <h3 className="font-medium mb-3">
