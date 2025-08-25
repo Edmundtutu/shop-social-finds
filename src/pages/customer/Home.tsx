@@ -10,6 +10,7 @@ import QuickStatsGrid from '@/components/customer/home/QuickStatsGrid';
 import CameraCapture from '@/components/features/CameraCapture';
 import { useImageCapture } from '@/hooks/useImageCapture';
 import { MessageCircle } from 'lucide-react';
+import {TextCarousel} from '@/components/features/TextCarousel';
 
 const Home: React.FC = () => {
   const { user } = useAuth();
@@ -43,11 +44,22 @@ const Home: React.FC = () => {
       {/* Welcome Header - Facebook-style */}
       <div className="text-center py-4 lg:py-6">
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">
-          Welcome back, {user?.name}!
+          Hey, {user?.name}!
         </h1>
-        <p className="text-muted-foreground text-sm lg:text-base">
-          Discover amazing products from local shops
-        </p>
+        <TextCarousel
+          className="text-muted-foreground text-sm lg:text-base"
+          texts={[
+            'Share your shopping experience',
+            'Nearby Resturants Have nice food!! Read the Post',
+            'What is your location today',
+            'Where will you go for shopping',
+            'Join your friends for a bite',
+            'Pictures of your purchase will guide a friend',
+            'Enjoy your experience with friends',
+          ]}
+          interval={4000}
+          transitionDuration={300}
+        />
       </div>
 
       <QuickStatsGrid />

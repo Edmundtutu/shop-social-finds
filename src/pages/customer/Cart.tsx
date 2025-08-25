@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Trash2, 
   Plus, 
@@ -13,7 +15,12 @@ import {
   ShoppingBag,
   MapPin,
   Truck,
-  Store
+  Store,
+  X,
+  Tag,
+  Percent,
+  Package,
+  PackagePlus
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
@@ -140,7 +147,6 @@ const Cart: React.FC = () => {
   return (
     <div className="w-full max-w-none px-2 sm:max-w-6xl sm:mx-auto space-y-4 sm:space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Shopping Cart</h1>
         <p className="text-muted-foreground text-sm sm:text-base">
           {itemCount} item{itemCount !== 1 ? 's' : ''} from {Object.keys(itemsByShop).length} shop{Object.keys(itemsByShop).length !== 1 ? 's' : ''}
         </p>
@@ -180,73 +186,219 @@ const Cart: React.FC = () => {
                   </Badge>
                 </div>
               </CardHeader>
+              {/* Enhanced CardContent with Package Plus Add-ons Feature */}
               <CardContent className="space-y-3">
                 {shopItems.map((item) => (
-                  <div key={item.id} className="flex gap-3 sm:gap-4 p-3 rounded-lg border">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-                      {item.product.images?.[0] ? (
-                        <img 
-                          src={item.product.images[0]} 
-                          alt={item.product.name}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
-                      ) : (
-                        <div className="text-xl sm:text-2xl">📦</div>
-                      )}
+                  <div key={item.id} className="relative group">
+                    {/* Package Plus Float Button */}
+                    <div className="absolute -top-2 -right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90 shadow-lg"
+                            title="Add Package Plus items"
+                          >
+                            <Package className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        
+                        <DialogContent className="max-w-2xl max-h-[80vh]">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <Package className="h-5 w-5" />
+                              Package Plus for {item.product.name}
+                            </DialogTitle>
+                          </DialogHeader>
+                          
+                          <ScrollArea className="max-h-[60vh]">
+                            <div className="space-y-4">
+                              {/* Current Add-ons Display */}
+                              {item.addOns && item.addOns.length > 0 && (
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2">
+                                    <Tag className="h-4 w-4" />
+                                    <h4 className="font-medium">Current Add-ons</h4>
+                                  </div>
+                                  <div className="grid gap-2">
+                                    {item.addOns.map((addOn, index) => (
+                                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-8 h-8 bg-background rounded flex items-center justify-center">
+                                            {addOn.product.images?.[0] ? (
+                                              <img 
+                                                src={addOn.product.images[0]} 
+                                                alt={addOn.product.name}
+                                                className="w-full h-full object-cover rounded"
+                                              />
+                                            ) : (
+                                              <span className="text-xs">📦</span>
+                                            )}
+                                          </div>
+                                          <div>
+                                            <p className="font-medium text-sm">{addOn.product.name}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                              UGX {addOn.discountedPrice?.toLocaleString()} 
+                                              <span className="line-through ml-1">
+                                                UGX {addOn.originalPrice.toLocaleString()}
+                                              </span>
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          {addOn.discountPercentage && (
+                                            <Badge variant="secondary" className="text-xs">
+                                              <Percent className="h-3 w-3 mr-1" />
+                                              {addOn.discountPercentage}% off
+                                            </Badge>
+                                          )}
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            onClick={() => removeAddOn(item.id, index)}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Add New Add-on Button */}
+                              <div className="border-t pt-4">
+                                <Link 
+                                  to={`/shops/${item.shop.id}?addOnFor=${item.product.id}&cartItemId=${item.id}`}
+                                  className="flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                                >
+                                  <PackagePlus className="h-5 w-5" />
+                                  <span className="font-medium">Browse Shop for Add-ons</span>
+                                </Link>
+                              </div>
+                              
+                              {/* Package Savings Display */}
+                              {item.addOns && item.addOns.length > 0 && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-green-800">Package Savings</span>
+                                    <span className="font-bold text-green-600">
+                                      UGX {calculatePackageSavings(item).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-green-600 mt-1">
+                                    You're saving with this package deal!
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </ScrollArea>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                     
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <Link 
-                            to={`/product/${item.product.id}`}
-                            className="font-medium hover:text-primary text-sm sm:text-base line-clamp-2"
-                          >
-                            {item.product.name}
-                          </Link>
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-1">
-                            {item.product.description}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                          className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 ml-2"
-                        >
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
+                    {/* Main Item Card */}
+                    <div className="flex gap-3 sm:gap-4 p-3 rounded-lg border">
+                      {/* Product Image with Add-on Indicator */}
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                        {item.product.images?.[0] ? (
+                          <img 
+                            src={item.product.images[0]} 
+                            alt={item.product.name}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        ) : (
+                          <div className="text-xl sm:text-2xl">📦</div>
+                        )}
+                        
+                        {/* Add-on Count Badge */}
+                        {item.addOns && item.addOns.length > 0 && (
+                          <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                            +{item.addOns.length}
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center border rounded-lg">
+                      {/* Product Details and Controls */}
+                      <div className="flex-1 space-y-2">
+                        {/* Product Name and Description with Remove Button */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <Link 
+                              to={`/product/${item.product.id}`}
+                              className="font-medium hover:text-primary text-sm sm:text-base line-clamp-2"
+                            >
+                              {item.product.name}
+                            </Link>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-1">
+                              {item.product.description}
+                            </p>
+                            
+                            {/* Add-ons Summary */}
+                            {item.addOns && item.addOns.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {item.addOns.slice(0, 2).map((addOn, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    + {addOn.product.name}
+                                  </Badge>
+                                ))}
+                                {item.addOns.length > 2 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{item.addOns.length - 2} more
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="h-8 w-8 sm:h-10 sm:w-10"
+                            onClick={() => removeItem(item.id)}
+                            className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 ml-2"
                           >
-                            <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                          <span className="px-3 py-2 min-w-[2.5rem] text-center text-sm sm:text-base">
-                            {item.quantity}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="h-8 w-8 sm:h-10 sm:w-10"
-                          >
-                            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
                         
-                        <div className="text-right">
-                          <div className="font-medium text-sm sm:text-base">
-                            UGX {(item.price * item.quantity).toLocaleString()}
+                        {/* Quantity Controls and Price */}
+                        <div className="flex items-center justify-between">
+                          {/* Quantity Controls */}
+                          <div className="flex items-center border rounded-lg">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              className="h-8 w-8 sm:h-10 sm:w-10"
+                            >
+                              <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                            <span className="px-3 py-2 min-w-[2.5rem] text-center text-sm sm:text-base">
+                              {item.quantity}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="h-8 w-8 sm:h-10 sm:w-10"
+                            >
+                              <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
                           </div>
-                          <div className="text-xs sm:text-sm text-muted-foreground">
-                            UGX {item.price.toLocaleString()} each
+                          
+                          {/* Price Information with Package Deal */}
+                          <div className="text-right">
+                            <div className="font-medium text-sm sm:text-base">
+                              UGX {(calculateItemTotalWithAddOns(item) * item.quantity).toLocaleString()}
+                            </div>
+                            <div className="text-xs sm:text-sm text-muted-foreground">
+                              UGX {calculateItemTotalWithAddOns(item).toLocaleString()} each
+                              {item.addOns && item.addOns.length > 0 && (
+                                <span className="text-green-600 block">
+                                  (Package Deal)
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

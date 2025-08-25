@@ -82,13 +82,6 @@ const Discover: React.FC = () => {
 
   return (
     <div className="w-full space-y-4 md:space-y-6 px-1 sm:px-0">
-      {/* Search Header */}
-      <div className="text-center">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Discover Products</h1>
-        <p className="text-muted-foreground text-sm md:text-base">
-          Find amazing products from local shops near you
-        </p>
-      </div>
 
       {/* Search Bar - Mobile optimized */}
       <form onSubmit={handleSearch} className="w-full">

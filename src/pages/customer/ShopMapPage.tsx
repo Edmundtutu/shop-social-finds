@@ -43,14 +43,6 @@ const ShopMapPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Shop Map</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">
-          Find shops near you and discover their products
-        </p>
-      </div>
-
       {/* Geolocation error */}
       {error && (
         <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
