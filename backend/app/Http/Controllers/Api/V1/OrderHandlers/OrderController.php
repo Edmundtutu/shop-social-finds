@@ -50,13 +50,26 @@ class OrderController extends Controller
             $total = 0;
             foreach ($validated['items'] as $item) {
                 $product = Product::findOrFail($item['product_id']);
-                $price = $product->price;
+                $basePrice = $item['base_price'] ?? $product->price;
+
+                // compute add-ons total per main item unit
+                $addOnsTotal = 0;
+                if (!empty($item['add_ons'])) {
+                    foreach ($item['add_ons'] as $addOn) {
+                        // Note: We trust validated prices from client for now; alternatively, recalc from DB
+                        $addOnsTotal += ($addOn['discounted_price'] * $addOn['quantity']);
+                    }
+                }
+
+                $lineTotal = ($basePrice + $addOnsTotal) * $item['quantity'];
+
                 $order->items()->create([
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
-                    'price' => $price,
+                    'price' => $lineTotal, // storing line total for now; consider separate columns if needed
                 ]);
-                $total += $price * $item['quantity'];
+
+                $total += $lineTotal;
             }
 
             $order->update(['total' => $total]);

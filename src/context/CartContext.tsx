@@ -1,12 +1,26 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Product, Shop } from '@/types';
 
+export interface CartAddOn {
+  id: string;
+  product: Product;
+  quantity: number;
+  originalPrice: number;
+  discountedPrice: number;
+  discountType?: 'percentage' | 'fixed' | 'none';
+  discountValue?: number;
+  addedAt: Date;
+}
+
 export interface CartItem {
   id: string;
   product: Product;
   shop: Shop;
   quantity: number;
-  price: number;
+  // base price of the main product (kept for historical accuracy if product.price changes)
+  basePrice: number;
+  // optional add-ons for this cart item
+  addOns?: CartAddOn[];
   addedAt: Date;
 }
 
@@ -21,10 +35,24 @@ interface CartContextType extends CartState {
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   clearShopItems: (shopId: string) => void;
-  getTotal: () => number;
+  getTotal: () => number; // legacy total without add-ons
+  getTotalWithAddOns: () => number; // enhanced total including add-ons
+  getItemTotalWithAddOns: (itemId: string) => number;
+  getItemSavings: (itemId: string) => number;
+  getItemAddOns: (itemId: string) => CartAddOn[];
   getItemCount: () => number;
   getShopTotal: (shopId: string) => number;
   getItemsByShop: () => Record<string, CartItem[]>;
+  addAddOn: (
+    itemId: string,
+    addOnProduct: Product,
+    quantity: number,
+    discountedPrice?: number,
+    discountType?: 'percentage' | 'fixed' | 'none',
+    discountValue?: number
+  ) => void;
+  removeAddOn: (itemId: string, addOnId: string) => void;
+  updateAddOnQuantity: (itemId: string, addOnId: string, quantity: number) => void;
   canCheckout: boolean;
 }
 
@@ -35,7 +63,10 @@ type CartAction =
   | { type: 'REMOVE_ITEM'; payload: string }
   | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
   | { type: 'CLEAR_CART' }
-  | { type: 'CLEAR_SHOP_ITEMS'; payload: string };
+  | { type: 'CLEAR_SHOP_ITEMS'; payload: string }
+  | { type: 'ADD_ADDON'; payload: { itemId: string; addOn: CartAddOn } }
+  | { type: 'REMOVE_ADDON'; payload: { itemId: string; addOnId: string } }
+  | { type: 'UPDATE_ADDON_QTY'; payload: { itemId: string; addOnId: string; quantity: number } };
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
@@ -87,6 +118,47 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         ...state,
         items: state.items.filter(item => item.shop.id !== action.payload),
       };
+
+    case 'ADD_ADDON':
+      return {
+        ...state,
+        items: state.items.map(item =>
+          item.id === action.payload.itemId
+            ? {
+                ...item,
+                addOns: [...(item.addOns ?? []), action.payload.addOn],
+              }
+            : item
+        ),
+      };
+
+    case 'REMOVE_ADDON':
+      return {
+        ...state,
+        items: state.items.map(item =>
+          item.id === action.payload.itemId
+            ? {
+                ...item,
+                addOns: (item.addOns ?? []).filter(a => a.id !== action.payload.addOnId),
+              }
+            : item
+        ),
+      };
+
+    case 'UPDATE_ADDON_QTY':
+      return {
+        ...state,
+        items: state.items.map(item =>
+          item.id === action.payload.itemId
+            ? {
+                ...item,
+                addOns: (item.addOns ?? []).map(a =>
+                  a.id === action.payload.addOnId ? { ...a, quantity: action.payload.quantity } : a
+                ),
+              }
+            : item
+        ),
+      };
     
     default:
       return state;
@@ -120,6 +192,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Convert date strings back to Date objects
         const itemsWithDates = parsedCart.map((item: any) => ({
           ...item,
+          // migrate legacy price -> basePrice
+          basePrice: item.basePrice ?? item.price ?? item.product?.price ?? 0,
+          // ensure addOns dates are parsed
+          addOns: (item.addOns ?? []).map((a: any) => ({
+            ...a,
+            addedAt: new Date(a.addedAt),
+          })),
           addedAt: new Date(item.addedAt),
         }));
         dispatch({ type: 'SET_ITEMS', payload: itemsWithDates });
@@ -149,7 +228,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       product,
       shop,
       quantity,
-      price: product.price,
+      basePrice: product.price,
       addedAt: new Date(),
     };
     dispatch({ type: 'ADD_ITEM', payload: cartItem });
@@ -176,7 +255,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getTotal = (): number => {
-    return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return state.items.reduce((total, item) => total + (item.basePrice * item.quantity), 0);
   };
 
   const getItemCount = (): number => {
@@ -186,7 +265,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getShopTotal = (shopId: string): number => {
     return state.items
       .filter(item => item.shop.id === shopId)
-      .reduce((total, item) => total + (item.price * item.quantity), 0);
+      .reduce((total, item) => total + (item.basePrice * item.quantity), 0);
   };
 
   const getItemsByShop = (): Record<string, CartItem[]> => {
@@ -202,6 +281,62 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const canCheckout = state.items.length > 0;
 
+  // Helpers for add-ons and totals
+  const getItemAddOns = (itemId: string): CartAddOn[] => {
+    const item = state.items.find(i => i.id === itemId);
+    return item?.addOns ?? [];
+  };
+
+  const getItemTotalWithAddOns = (itemId: string): number => {
+    const item = state.items.find(i => i.id === itemId);
+    if (!item) return 0;
+    const addOnsTotalPerMain = (item.addOns ?? []).reduce((sum, a) => sum + a.discountedPrice * a.quantity, 0);
+    return item.basePrice * item.quantity + addOnsTotalPerMain * item.quantity;
+  };
+
+  const getItemSavings = (itemId: string): number => {
+    const item = state.items.find(i => i.id === itemId);
+    if (!item) return 0;
+    return (item.addOns ?? []).reduce((s, a) => s + (a.originalPrice - a.discountedPrice) * a.quantity, 0);
+  };
+
+  const getTotalWithAddOns = (): number => {
+    return state.items.reduce((sum, item) => sum + getItemTotalWithAddOns(item.id), 0);
+  };
+
+  const addAddOn: CartContextType['addAddOn'] = (
+    itemId,
+    addOnProduct,
+    quantity,
+    discountedPrice,
+    discountType = 'none',
+    discountValue
+  ) => {
+    const addOn: CartAddOn = {
+      id: `${addOnProduct.id}-${Date.now()}`,
+      product: addOnProduct,
+      quantity,
+      originalPrice: addOnProduct.price,
+      discountedPrice: typeof discountedPrice === 'number' ? discountedPrice : addOnProduct.price,
+      discountType,
+      discountValue,
+      addedAt: new Date(),
+    };
+    dispatch({ type: 'ADD_ADDON', payload: { itemId, addOn } });
+  };
+
+  const removeAddOn: CartContextType['removeAddOn'] = (itemId, addOnId) => {
+    dispatch({ type: 'REMOVE_ADDON', payload: { itemId, addOnId } });
+  };
+
+  const updateAddOnQuantity: CartContextType['updateAddOnQuantity'] = (itemId, addOnId, quantity) => {
+    if (quantity <= 0) {
+      dispatch({ type: 'REMOVE_ADDON', payload: { itemId, addOnId } });
+    } else {
+      dispatch({ type: 'UPDATE_ADDON_QTY', payload: { itemId, addOnId, quantity } });
+    }
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -215,6 +350,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getItemCount,
         getShopTotal,
         getItemsByShop,
+        getTotalWithAddOns,
+        getItemTotalWithAddOns,
+        getItemSavings,
+        getItemAddOns,
+        addAddOn,
+        removeAddOn,
+        updateAddOnQuantity,
         canCheckout,
       }}
     >

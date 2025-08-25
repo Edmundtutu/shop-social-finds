@@ -2,9 +2,20 @@ import type { Product } from "./products";
 import type { Shop } from "./shops";
 import type { AuthUser } from "./auth";
 
+export interface CreateOrderAddOnPayload {
+  product_id: string;
+  quantity: number;
+  original_price: number;
+  discounted_price: number;
+}
+
 export interface CreateOrderItemPayload {
   product_id: string; // ULID
   quantity: number;
+  base_price?: number;
+  add_ons?: CreateOrderAddOnPayload[];
+  item_total?: number;
+  package_savings?: number;
 }
 
 export interface CreateOrderPayload {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,10 +7,15 @@ import { Star, MapPin, Phone, ArrowLeft } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { shopService } from '@/services/shopService';
 import { Product, Shop } from '@/types';
+import { useCart } from '@/context/CartContext';
+import { useToast } from '@/hooks/use-toast';
 
 const ShopDetails: React.FC = () => {
   const { shopId } = useParams<{ shopId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { items: cartItems, addItem, addAddOn } = useCart();
+  const { toast } = useToast();
 
   const { data: shop, isLoading: loadingShop, error: shopError } = useQuery<Shop>({
     enabled: !!shopId,
@@ -28,6 +33,25 @@ const ShopDetails: React.FC = () => {
     },
     staleTime: 30_000,
   });
+
+  // Add-on selection mode from URL params
+  const addOnCartItemId = searchParams.get('cartItemId') || '';
+  const addOnFor = searchParams.get('addOnFor') || '';
+  const isAddOnMode = Boolean(addOnCartItemId && addOnFor);
+  const addOnTargetItem = cartItems.find((ci) => ci.id === addOnCartItemId);
+
+  const exitAddOnMode = () => setSearchParams({});
+
+  const handleAddToCart = (product: Product, shop: Shop) => {
+    addItem(product, 1, shop);
+    toast({ title: 'Added to cart', description: `${product.name} added to cart.` });
+  };
+
+  const handleAddAsAddOn = (product: Product) => {
+    if (!isAddOnMode || !addOnCartItemId) return;
+    addAddOn(addOnCartItemId, product, 1);
+    toast({ title: 'Add-on added', description: `${product.name} added as add-on.` });
+  };
 
   if (loadingShop) {
     return (
@@ -53,6 +77,19 @@ const ShopDetails: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 md:p-8">
+      {isAddOnMode && (
+        <div className="mb-4 p-3 rounded-md border bg-muted flex items-center justify-between">
+          <div className="text-sm">
+            Adding add-ons for
+            {addOnTargetItem ? (
+              <span className="font-medium"> {addOnTargetItem.product.name}</span>
+            ) : (
+              <span className="font-medium"> selected item</span>
+            )}
+          </div>
+          <Button size="sm" variant="outline" onClick={exitAddOnMode}>Done</Button>
+        </div>
+      )}
       {/* Back button */}
       <Button variant="ghost" className="mb-4" onClick={() => navigate(-1)}>
         <ArrowLeft className="h-4 w-4 mr-2" /> Back
@@ -122,9 +159,20 @@ const ShopDetails: React.FC = () => {
                 </div>
                 <h4 className="font-semibold text-lg mb-1 truncate">{product.name}</h4>
                 <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
-                <div className="mt-auto flex items-center justify-between">
-                  <span className="text-primary font-bold text-base">UGX {product.price.toLocaleString()}</span>
-                  <Badge variant="secondary" className="text-xs">{product.category}</Badge>
+                <div className="mt-auto space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-primary font-bold text-base">UGX {product.price.toLocaleString()}</span>
+                    <Badge variant="secondary" className="text-xs">{(product as any).category}</Badge>
+                  </div>
+                  {shop && (
+                    <div className="flex gap-2">
+                      {isAddOnMode ? (
+                        <Button className="flex-1" onClick={() => handleAddAsAddOn(product)}>Add as Add-on</Button>
+                      ) : (
+                        <Button className="flex-1" onClick={() => handleAddToCart(product, shop)}>Add to Cart</Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,24 @@ import { useMutation } from '@tanstack/react-query';
 import { createOrder } from '@/services/orderService';
 import type { CreateOrderPayload, Order } from '@/types/orders';
 
+
+{/* Helper Functions - These would be added to your component */}
+const calculateItemUnitWithAddOns = (item: any) => {
+  const base = item.basePrice ?? item.price ?? 0;
+  const addOns = (item.addOns ?? []).reduce((sum: number, addOn: any) => sum + (addOn.discountedPrice ?? addOn.originalPrice) * (addOn.quantity ?? 1), 0);
+  return base + addOns;
+};
+
+const calculatePackageSavings = (item: any) => {
+  if (!item.addOns) return 0;
+  return item.addOns.reduce((savings: number, addOn: any) => {
+    return savings + ((addOn.originalPrice - (addOn.discountedPrice ?? addOn.originalPrice)) * (addOn.quantity ?? 1));
+  }, 0);
+};
+
+const removeAddOn = (remove: (itemId: string, addOnId: string) => void, itemId: string, addOnId: string) => {
+  remove(itemId, addOnId);
+};
 const Cart: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -40,6 +58,9 @@ const Cart: React.FC = () => {
     getItemCount,
     getItemsByShop,
     canCheckout,
+    getTotalWithAddOns,
+    getItemTotalWithAddOns,
+    removeAddOn: removeAddOnFromCart,
   } = useCart();
 
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
@@ -61,7 +82,7 @@ const Cart: React.FC = () => {
   });
 
   const itemsByShop = getItemsByShop();
-  const total = getTotal();
+  const total = useMemo(() => getTotalWithAddOns(), [items]);
   const itemCount = getItemCount();
   const deliveryFee = deliveryType === 'delivery' ? 5000 : 0; // 5000 UGX
   const finalTotal = total + deliveryFee;
@@ -98,6 +119,15 @@ const Cart: React.FC = () => {
         items: shopItems.map((item) => ({
           product_id: String(item.product.id),
           quantity: item.quantity,
+          base_price: item.basePrice ?? 0,
+          add_ons: (item.addOns ?? []).map((a) => ({
+            product_id: String(a.product.id),
+            quantity: a.quantity ?? 1,
+            original_price: a.originalPrice ?? a.product.price,
+            discounted_price: a.discountedPrice ?? a.originalPrice ?? a.product.price,
+          })),
+          item_total: (item.basePrice ?? 0) * item.quantity + ((item.addOns ?? []).reduce((sum, a) => sum + (a.discountedPrice ?? a.originalPrice) * (a.quantity ?? 1), 0) * item.quantity),
+          package_savings: (item.addOns ?? []).reduce((s, a) => s + ((a.originalPrice ?? a.product.price) - (a.discountedPrice ?? a.originalPrice ?? a.product.price)) * (a.quantity ?? 1), 0),
         })),
         delivery_address: deliveryType === 'delivery' ? deliveryAddress : 'N/A for pickup',
         delivery_lat: deliveryCoords.lat,
@@ -182,7 +212,7 @@ const Cart: React.FC = () => {
                     </div>
                   </div>
                   <Badge variant="outline">
-                    UGX {shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString()}
+                    UGX {shopItems.reduce((sum, item) => sum + ((item.basePrice ?? 0) * item.quantity), 0).toLocaleString()}
                   </Badge>
                 </div>
               </CardHeader>
@@ -246,17 +276,11 @@ const Cart: React.FC = () => {
                                           </div>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                          {addOn.discountPercentage && (
-                                            <Badge variant="secondary" className="text-xs">
-                                              <Percent className="h-3 w-3 mr-1" />
-                                              {addOn.discountPercentage}% off
-                                            </Badge>
-                                          )}
                                           <Button
                                             variant="ghost"
                                             size="icon"
                                             className="h-6 w-6"
-                                            onClick={() => removeAddOn(item.id, index)}
+                                            onClick={() => removeAddOn(removeAddOnFromCart, item.id, addOn.id)}
                                           >
                                             <X className="h-3 w-3" />
                                           </Button>
@@ -389,10 +413,10 @@ const Cart: React.FC = () => {
                           {/* Price Information with Package Deal */}
                           <div className="text-right">
                             <div className="font-medium text-sm sm:text-base">
-                              UGX {(calculateItemTotalWithAddOns(item) * item.quantity).toLocaleString()}
+                              UGX {getItemTotalWithAddOns(item.id).toLocaleString()}
                             </div>
                             <div className="text-xs sm:text-sm text-muted-foreground">
-                              UGX {calculateItemTotalWithAddOns(item).toLocaleString()} each
+                              UGX {calculateItemUnitWithAddOns(item).toLocaleString()} each
                               {item.addOns && item.addOns.length > 0 && (
                                 <span className="text-green-600 block">
                                   (Package Deal)
