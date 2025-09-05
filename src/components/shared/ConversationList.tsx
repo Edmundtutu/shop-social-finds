@@ -4,9 +4,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Clock, User, Store } from 'lucide-react';
+import { MessageCircle, Clock, User, Store, AlertTriangle, Package } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { useAuth } from '@/context/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ChatStatusIndicator } from './ChatStatusIndicator';
 import type { Conversation } from '@/services/chatService';
 
 interface ConversationListProps {
@@ -21,7 +23,22 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   onSelectConversation,
 }) => {
   const { user } = useAuth();
-  const { conversations, getUnreadCount, isLoading } = useChat();
+  
+  // Safely get chat context with error handling
+  let conversations: Conversation[] = [];
+  let getUnreadCount = (id: number) => 0;
+  let isLoading = false;
+  let chatError: string | null = null;
+
+  try {
+    const chatContext = useChat();
+    conversations = chatContext.conversations || [];
+    getUnreadCount = chatContext.getUnreadCount || (() => 0);
+    isLoading = chatContext.isLoading || false;
+  } catch (error) {
+    console.warn('Chat context not available in ConversationList:', error);
+    chatError = 'Chat service is currently unavailable';
+  }
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -73,7 +90,17 @@ export const ConversationList: React.FC<ConversationListProps> = ({
 
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-2">
-            {isLoading ? (
+            {chatError ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{chatError}</AlertDescription>
+                </Alert>
+                <Button variant="outline" onClick={onClose}>
+                  Close
+                </Button>
+              </div>
+            ) : isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="text-muted-foreground">Loading conversations...</div>
               </div>
@@ -120,8 +147,14 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                             </div>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground truncate mb-1">
-                          Order #{conversation.order_id}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground truncate mb-1">
+                          <Package className="h-3 w-3" />
+                          <span>Order #{conversation.order_id}</span>
+                          <ChatStatusIndicator 
+                            status="offline" 
+                            lastSeen={conversation.last_message_at}
+                            className="ml-auto"
+                          />
                         </div>
                         <div className="text-sm text-muted-foreground truncate">
                           {subtitle}

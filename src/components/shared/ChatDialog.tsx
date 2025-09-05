@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Image, Mic, Paperclip, Circle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Send, Image, Mic, Paperclip, Circle, AlertTriangle, Package, Store, User } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { useAuth } from '@/context/AuthContext';
+import { ChatStatusIndicator } from './ChatStatusIndicator';
+import { QuickChatActions } from './QuickChatActions';
 import type { Order } from '@/types/orders';
 
 interface ChatDialogProps {
@@ -18,19 +21,31 @@ interface ChatDialogProps {
 
 export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }) => {
   const { user } = useAuth();
+  
+  // Safely get chat context with error handling
+  let chatContext: any = {};
+  let chatError: string | null = null;
+
+  try {
+    chatContext = useChat();
+  } catch (error) {
+    console.warn('Chat context not available in ChatDialog:', error);
+    chatError = 'Chat service is currently unavailable';
+  }
+
   const { 
-    activeConversation, 
-    messages, 
-    sendMessage, 
-    setActiveConversation,
-    ensureConversationForOrder,
-    isLoading,
-    startTyping,
-    stopTyping,
-    updatePresence,
-    getTypingUsers,
-    getOnlineUsers
-  } = useChat();
+    activeConversation = null, 
+    messages = [], 
+    sendMessage = async () => {}, 
+    setActiveConversation = () => {},
+    ensureConversationForOrder = async () => null,
+    isLoading = false,
+    startTyping = async () => {},
+    stopTyping = async () => {},
+    updatePresence = async () => {},
+    getTypingUsers = () => [],
+    getOnlineUsers = () => []
+  } = chatContext;
   
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -122,6 +137,10 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
     }
   };
 
+  const handleQuickAction = (action: any) => {
+    setMessageText(action.text);
+  };
+
   // Get typing users and online users for current conversation
   const typingUsers = activeConversation ? getTypingUsers(activeConversation.id) : [];
   const onlineUsers = activeConversation ? getOnlineUsers(activeConversation.id) : [];
@@ -142,17 +161,37 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
       <DialogContent className="max-w-2xl h-[600px] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Badge variant="outline">Order #{order.id}</Badge>
-            <span>Chat with {order.shop?.name || 'Shop'}</span>
-            {onlineUsers.length > 0 && (
-              <div className="flex items-center gap-1 ml-auto">
-                <Circle className="h-2 w-2 fill-green-500 text-green-500" />
-                <span className="text-xs text-muted-foreground">Online</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              <Badge variant="outline">Order #{order.id}</Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              {user?.role === 'customer' ? (
+                <>
+                  <Store className="h-4 w-4" />
+                  <span>{order.shop?.name || 'Shop'}</span>
+                </>
+              ) : (
+                <>
+                  <User className="h-4 w-4" />
+                  <span>{order.user?.name || 'Customer'}</span>
+                </>
+              )}
+            </div>
+            <ChatStatusIndicator 
+              status={onlineUsers.length > 0 ? 'online' : 'offline'}
+              className="ml-auto"
+            />
           </DialogTitle>
-          <DialogDescription>
-            Communicate with {order.shop?.name || 'the shop'} about your order details and any questions you may have.
+          <DialogDescription className="flex items-center justify-between">
+            <span>
+              Communicate about your order details and any questions you may have.
+            </span>
+            {typingUsers.length > 0 && (
+              <span className="text-blue-600 text-sm">
+                {typingUsers.map(u => u.name).join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -160,33 +199,59 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
           {/* Messages Area */}
           <ScrollArea className="flex-1 border rounded-lg p-4 mb-4">
             <div className="space-y-3">
-              {messages.length === 0 ? (
+              {chatError ? (
+                <div className="text-center py-8">
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{chatError}</AlertDescription>
+                  </Alert>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   <p>No messages yet</p>
                   <p className="text-sm">Start the conversation!</p>
                 </div>
               ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${isOwnMessage(message) ? 'justify-end' : 'justify-start'}`}
-                  >
+                messages.map((message, index) => {
+                  const isOwn = isOwnMessage(message);
+                  const isLastMessage = index === messages.length - 1;
+                  
+                  return (
                     <div
-                      className={`max-w-[70%] rounded-lg px-3 py-2 ${
-                        isOwnMessage(message)
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
+                      key={message.id}
+                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                     >
-                      <p className="text-sm">{message.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        isOwnMessage(message) ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                      }`}>
-                        {formatTime(message.created_at)}
-                      </p>
+                      <div
+                        className={`max-w-[70%] rounded-lg px-3 py-2 ${
+                          isOwn
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                        <div className={`flex items-center justify-between mt-1 gap-2 ${
+                          isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                        }`}>
+                          <span className="text-xs">
+                            {formatTime(message.created_at)}
+                          </span>
+                          {isOwn && isLastMessage && (
+                            <div className="flex items-center gap-1">
+                              {message.read_at ? (
+                                <Circle className="h-2 w-2 fill-blue-400 text-blue-400" />
+                              ) : (
+                                <Circle className="h-2 w-2 fill-gray-400 text-gray-400" />
+                              )}
+                              <span className="text-xs">
+                                {message.read_at ? 'Read' : 'Sent'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               
               {/* Typing indicator */}
@@ -211,6 +276,15 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
             </div>
           </ScrollArea>
 
+          {/* Quick Actions */}
+          {!chatError && messages.length < 3 && (
+            <QuickChatActions 
+              onActionSelect={handleQuickAction}
+              orderStatus={order.status}
+              userRole={user?.role}
+            />
+          )}
+
           {/* Message Input */}
           <div className="flex gap-2">
             <div className="flex-1 relative">
@@ -218,9 +292,9 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
                 value={messageText}
                 onChange={(e) => handleTyping(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
+                placeholder={chatError ? "Chat unavailable" : "Type your message..."}
                 className="pr-20"
-                disabled={isLoading}
+                disabled={isLoading || !!chatError}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
                 <Button
@@ -251,7 +325,7 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
             </div>
             <Button
               onClick={handleSendMessage}
-              disabled={!messageText.trim() || isLoading}
+              disabled={!messageText.trim() || isLoading || !!chatError}
               size="sm"
             >
               <Send className="h-4 w-4" />

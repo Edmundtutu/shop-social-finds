@@ -17,6 +17,7 @@ import { useChat } from '@/context/ChatContext';
 import { Badge } from '@/components/ui/badge';
 import { ConversationList } from '@/components/shared/ConversationList';
 import { ChatDialog } from '@/components/shared/ChatDialog';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import type { Conversation } from '@/services/chatService';
 
 interface NavItem {
@@ -93,20 +94,23 @@ const MobileBottomNav: React.FC = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-t lg:hidden">
-      <div className="flex items-center justify-around px-2 py-1 safe-area-pb">
+      <div className="flex items-center justify-around px-2 py-2 safe-area-pb">
         {navItems.map((item) => {
           const isActive = item.href ? isActivePath(item.href) : false;
+          const isChatItem = item.name === 'Chat';
           const content = (
             <>
               <div className="relative">
-                <item.icon className={`h-6 w-6 ${isActive ? 'scale-110' : ''} transition-transform`} />
+                <item.icon className={`h-5 w-5 ${isActive ? 'scale-110 text-primary' : ''} ${isChatItem && item.badge ? 'animate-pulse' : ''} transition-all duration-200`} />
                 {item.badge !== undefined && item.badge > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center text-xs p-0 bg-red-500">
+                  <Badge className={`absolute -top-1.5 -right-1.5 h-4 w-4 flex items-center justify-center text-xs p-0 ${
+                    isChatItem ? 'bg-blue-500 animate-bounce' : 'bg-red-500'
+                  }`}>
                     {item.badge > 99 ? '99+' : item.badge}
                   </Badge>
                 )}
               </div>
-              <span className={`text-xs mt-1 truncate max-w-full ${isActive ? 'font-medium' : ''}`}>
+              <span className={`text-xs mt-1 truncate max-w-full ${isActive ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
                 {item.name}
               </span>
               {/* Active indicator */}
@@ -148,20 +152,24 @@ const MobileBottomNav: React.FC = () => {
 
       {/* Conversation List Dialog */}
       {conversationListOpen && (
-        <ConversationList
-          isOpen={conversationListOpen}
-          onClose={() => setConversationListOpen(false)}
-          onSelectConversation={handleConversationSelect}
-        />
+        <ErrorBoundary>
+          <ConversationList
+            isOpen={conversationListOpen}
+            onClose={() => setConversationListOpen(false)}
+            onSelectConversation={handleConversationSelect}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Chat Dialog */}
       {selectedConversation && chatDialogOpen && (
-        <ChatDialog
-          order={selectedConversation.order}
-          isOpen={chatDialogOpen}
-          onClose={handleChatDialogClose}
-        />
+        <ErrorBoundary>
+          <ChatDialog
+            order={selectedConversation.order}
+            isOpen={chatDialogOpen}
+            onClose={handleChatDialogClose}
+          />
+        </ErrorBoundary>
       )}
     </div>
   );

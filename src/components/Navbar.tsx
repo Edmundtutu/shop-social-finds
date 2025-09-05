@@ -21,6 +21,7 @@ import { useChat } from '@/context/ChatContext';
 import { ConversationList } from '@/components/shared/ConversationList';
 import { NotificationList } from '@/components/shared/NotificationList';
 import { ChatDialog } from '@/components/shared/ChatDialog';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import type { Conversation } from '@/services/chatService';
 
 interface NavbarProps {
@@ -273,29 +274,35 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
 
       {/* Conversation List Dialog */}
       {conversationListOpen && (
-        <ConversationList
-          isOpen={conversationListOpen}
-          onClose={() => setConversationListOpen(false)}
-          onSelectConversation={handleConversationSelect}
-        />
+        <ErrorBoundary>
+          <ConversationList
+            isOpen={conversationListOpen}
+            onClose={() => setConversationListOpen(false)}
+            onSelectConversation={handleConversationSelect}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Notification List Dialog */}
       {notificationListOpen && (
-        <NotificationList
-          isOpen={notificationListOpen}
-          onClose={() => setNotificationListOpen(false)}
-          onSelectConversation={handleConversationSelect}
-        />
+        <ErrorBoundary>
+          <NotificationList
+            isOpen={notificationListOpen}
+            onClose={() => setNotificationListOpen(false)}
+            onSelectConversation={handleConversationSelect}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Chat Dialog */}
       {selectedConversation && chatDialogOpen && (
-        <ChatDialog
-          order={selectedConversation.order}
-          isOpen={chatDialogOpen}
-          onClose={handleChatDialogClose}
-        />
+        <ErrorBoundary>
+          <ChatDialog
+            order={selectedConversation.order}
+            isOpen={chatDialogOpen}
+            onClose={handleChatDialogClose}
+          />
+        </ErrorBoundary>
       )}
     </nav>
   );
