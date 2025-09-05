@@ -13,6 +13,7 @@ interface ChatState {
   error: string | null;
   typingUsers: { [conversationId: number]: { [userId: string]: { name: string; type: string } } };
   onlineUsers: { [conversationId: number]: { [userId: string]: boolean } };
+  connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
 }
 
 interface ChatContextType extends ChatState {
@@ -54,7 +55,8 @@ type ChatAction =
   | { type: 'MARK_MESSAGES_READ'; payload: { conversationId: number; senderType: string } }
   | { type: 'SET_TYPING_USER'; payload: { conversationId: number; userId: string; name: string; type: string } }
   | { type: 'REMOVE_TYPING_USER'; payload: { conversationId: number; userId: string } }
-  | { type: 'SET_USER_PRESENCE'; payload: { conversationId: number; userId: string; status: boolean } };
+  | { type: 'SET_USER_PRESENCE'; payload: { conversationId: number; userId: string; status: boolean } }
+  | { type: 'SET_CONNECTION_STATUS'; payload: 'connecting' | 'connected' | 'disconnected' | 'error' };
 
 const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
   switch (action.type) {
@@ -124,6 +126,8 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
           },
         },
       };
+    case 'SET_CONNECTION_STATUS':
+      return { ...state, connectionStatus: action.payload };
     default:
       return state;
   }
@@ -150,25 +154,45 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     error: null,
     typingUsers: {},
     onlineUsers: {},
+    connectionStatus: 'disconnected',
   });
 
   const currentChannelRef = useRef<any>(null);
+  const stateRef = useRef(state);
+  
+  // Keep state ref updated
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // Subscribe to Echo channel for a conversation
   const subscribeToConversation = useCallback((conversationId: number) => {
     try {
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' });
       const echo = getEcho();
+      console.log('🔌 Subscribing to conversation channel:', conversationId);
+      
       // Unsubscribe previous
       if (currentChannelRef.current) {
         try {
           currentChannelRef.current.stopListening('.message.sent');
-          echo.leave(`private-conversation.${conversationId}`);
-        } catch {}
+          currentChannelRef.current.stopListening('.typing.started');
+          currentChannelRef.current.stopListening('.typing.stopped');
+          currentChannelRef.current.stopListening('.presence.changed');
+          echo.leave(`conversation.${currentChannelRef.current.conversationId}`);
+          console.log('🔌 Unsubscribed from previous channel:', currentChannelRef.current.conversationId);
+        } catch (error) {
+          console.warn('Error unsubscribing from previous channel:', error);
+        }
       }
+      
       const channel = echo.private(`conversation.${conversationId}`);
+      channel.conversationId = conversationId; // Store for cleanup
       
       // Listen for messages
       channel.listen('.message.sent', (event: any) => {
+        console.log('📨 Received real-time message:', event);
+        
         const incoming: Message = {
           id: event.id,
           conversation_id: event.conversation_id,
@@ -179,9 +203,21 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           media_url: event.media_url,
           created_at: event.created_at,
           updated_at: event.created_at,
+          read_at: event.read_at,
         };
-        dispatch({ type: 'ADD_MESSAGE', payload: incoming });
-        dispatch({ type: 'UPDATE_CONVERSATION_LAST_MESSAGE', payload: { conversationId, message: incoming } });
+        
+        // Check if message already exists to prevent duplicates
+        const existingMessage = stateRef.current.messages.find(msg => msg.id === incoming.id);
+        if (!existingMessage) {
+          dispatch({ type: 'ADD_MESSAGE', payload: incoming });
+          dispatch({ type: 'UPDATE_CONVERSATION_LAST_MESSAGE', payload: { conversationId, message: incoming } });
+          
+          // Play notification sound for received messages (not own messages)
+          if (incoming.sender_id !== user?.id && 'Notification' in window) {
+            // You can add notification logic here
+            console.log('🔔 New message from:', incoming.sender_type);
+          }
+        }
       });
 
       // Listen for typing indicators
@@ -224,12 +260,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       });
+      
       currentChannelRef.current = channel;
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' });
+      console.log('✅ Successfully subscribed to conversation channel:', conversationId);
+      
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Echo subscription failed:', e);
+      console.error('❌ Echo subscription failed:', e);
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' });
+      dispatch({ type: 'SET_ERROR', payload: 'Real-time connection failed' });
     }
-  }, []);
+  }, [user]);
 
   // Load conversations
   const loadConversations = useCallback(async () => {
@@ -269,14 +310,21 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const sendMessage = useCallback(async (payload: SendMessagePayload) => {
     try {
       const sent = await apiSendMessage(payload);
+      
+      // Only add message locally if we sent it (avoid duplicates from real-time)
+      // The real-time listener will handle incoming messages from others
       dispatch({ type: 'ADD_MESSAGE', payload: sent });
       dispatch({ type: 'UPDATE_CONVERSATION_LAST_MESSAGE', payload: { conversationId: sent.conversation_id, message: sent } });
+      
+      console.log('✅ Message sent successfully:', sent.id);
     } catch (error) {
+      console.error('❌ Failed to send message:', error);
       toast({
         title: 'Failed to send message',
-        description: 'There was an error sending your message.',
+        description: 'There was an error sending your message. Please try again.',
         variant: 'destructive',
       });
+      throw error; // Re-throw to allow UI to handle the error
     }
   }, [toast]);
 
@@ -312,8 +360,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.conversations]);
 
   const getUnreadCount = useCallback((conversationId: number) => {
-    return state.messages.filter(msg => msg.conversation_id === conversationId && !msg.read_at).length;
-  }, [state.messages]);
+    // Get unread count from conversation's messages, not just active conversation messages
+    const conversation = state.conversations.find(conv => conv.id === conversationId);
+    if (!conversation) return 0;
+    
+    // If we have messages loaded for this conversation, count unread
+    const conversationMessages = state.messages.filter(msg => msg.conversation_id === conversationId);
+    if (conversationMessages.length > 0) {
+      return conversationMessages.filter(msg => !msg.read_at && msg.sender_id !== user?.id).length;
+    }
+    
+    // Fallback: estimate from conversation data if available
+    return 0;
+  }, [state.messages, state.conversations, user?.id]);
 
   const startTyping = useCallback(async (conversationId: number) => {
     try {
@@ -352,11 +411,28 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return Object.keys(online).filter(userId => online[userId]);
   }, [state.onlineUsers]);
 
-  // Load conversations when user changes/login
+  // Load conversations when user changes/login and cleanup on unmount
   useEffect(() => {
     if (user) {
       loadConversations();
     }
+
+    // Cleanup function
+    return () => {
+      if (currentChannelRef.current) {
+        try {
+          const echo = getEcho();
+          currentChannelRef.current.stopListening('.message.sent');
+          currentChannelRef.current.stopListening('.typing.started');
+          currentChannelRef.current.stopListening('.typing.stopped');
+          currentChannelRef.current.stopListening('.presence.changed');
+          echo.leave(`conversation.${currentChannelRef.current.conversationId}`);
+        } catch (error) {
+          console.warn('Error during chat cleanup:', error);
+        }
+        currentChannelRef.current = null;
+      }
+    };
   }, [user, loadConversations]);
 
   return (
