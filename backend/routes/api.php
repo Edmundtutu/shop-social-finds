@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\ShopHandlers\Inventory\ModificationController;
 use App\Http\Controllers\Api\V1\ShopHandlers\ReviewController;
 use App\Http\Controllers\Api\V1\ShopHandlers\ShopController;
 use App\Http\Controllers\Api\V1\UserHandlers\FollowController;
+use App\Http\Controllers\Api\V1\ChatController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -67,6 +68,8 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vendor/orders', [OrderController::class, 'vendorOrders']);
+        Route::patch('/vendor/orders/{order}/confirm', [OrderController::class, 'confirmOrder']);
+        Route::patch('/vendor/orders/{order}/reject', [OrderController::class, 'rejectOrder']);
     });
     Route::apiResource('orders', OrderController::class);
 
@@ -88,4 +91,17 @@ Route::prefix('v1')->group(function () {
     Route::delete('follows/{user}', [FollowController::class, 'destroy']);
     Route::get('users/{user}/followers', [FollowController::class, 'followers']);
     Route::get('users/{user}/following', [FollowController::class, 'following']);
+
+    // Chat routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/chat/conversation', [ChatController::class, 'getConversation']);
+        Route::post('/chat/message', [ChatController::class, 'sendMessage']);
+        Route::get('/chat/conversations/{conversationId}/messages', [ChatController::class, 'getMessages']);
+        Route::patch('/chat/conversations/{conversationId}/read', [ChatController::class, 'markAsRead']);
+        Route::get('/chat/conversations/user', [ChatController::class, 'getUserConversations']);
+        Route::get('/chat/conversations/shop', [ChatController::class, 'getShopConversations']);
+        Route::post('/chat/typing/start', [ChatController::class, 'startTyping']);
+        Route::post('/chat/typing/stop', [ChatController::class, 'stopTyping']);
+        Route::post('/chat/presence', [ChatController::class, 'updatePresence']);
+    });
 });

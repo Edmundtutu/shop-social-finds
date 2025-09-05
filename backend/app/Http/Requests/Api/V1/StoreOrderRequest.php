@@ -30,12 +30,12 @@ class StoreOrderRequest extends FormRequest
             'items' => 'required|array',
             'items.*.product_id' => 'required|ulid|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.base_price' => 'nullable|integer|min:0',
+            'items.*.base_price' => 'nullable|numeric|min:0',
             'items.*.add_ons' => 'nullable|array',
             'items.*.add_ons.*.product_id' => 'required_with:items.*.add_ons|ulid|exists:products,id',
             'items.*.add_ons.*.quantity' => 'required_with:items.*.add_ons|integer|min:1',
-            'items.*.add_ons.*.original_price' => 'required_with:items.*.add_ons|integer|min:0',
-            'items.*.add_ons.*.discounted_price' => 'required_with:items.*.add_ons|integer|min:0',
+            'items.*.add_ons.*.original_price' => 'required_with:items.*.add_ons|numeric|min:0',
+            'items.*.add_ons.*.discounted_price' => 'required_with:items.*.add_ons|numeric|min:0',
         ];
     }
 }

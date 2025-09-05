@@ -13,8 +13,8 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Shopify',
-        short_name: 'Shopify',
+        name: 'Foody',
+        short_name: 'Foody',
         description: 'Social commerce',
         theme_color: '#00000000',
         icons: [

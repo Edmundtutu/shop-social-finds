@@ -28,3 +28,11 @@ export const getVendorOrders = async (): Promise<Order[]> => {
   const response = await api.get<ApiResponse<Order[]>>(`${apiVersion}/vendor/orders`);
   return (response.data as any)?.data ?? response.data;
 };
+export const confirmOrder = async (orderId: number): Promise<{ message: string }> => {
+  const response = await api.patch(`${apiVersion}/vendor/orders/${orderId}/confirm`);
+  return response.data;
+}
+export const rejectOrder = async (orderId: number): Promise<{ message: string }> => {
+  const response = await api.patch(`${apiVersion}/vendor/orders/${orderId}/reject`);
+  return response.data;
+}

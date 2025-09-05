@@ -4,63 +4,56 @@ namespace App\Policies\Api\V1;
 
 use App\Models\Order;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class OrderPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return true;
+        // Vendors: can view their shop's orders
+        // Customers: can view their own orders
+        return $user->isVendor() || $user->isCustomer();
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, Order $order): bool
     {
-        return $user->id === $order->user_id || $user->id === $order->shop->user_id;
+        return $user->id === $order->user_id   // customer sees own order
+            || ($user->isVendor() && $user->id === $order->shop->user_id); // vendor sees shop order
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return true;
+        // Only customers can create new orders
+        return $user->isCustomer();
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Order $order): bool
     {
-        return $user->id === $order->shop->user_id;
+        // Vendors can update their shop’s orders
+        return $user->isVendor() && $user->id === $order->shop->user_id;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Order $order): bool
     {
-        return $user->id === $order->user_id;
+        // Customers can cancel their own order if still pending
+        return $user->isCustomer()
+            && $user->id === $order->user_id
+            && $order->status === 'pending';
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
     public function restore(User $user, Order $order): bool
     {
         return false;
     }
 
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
     public function forceDelete(User $user, Order $order): bool
     {
         return false;
+    }
+
+    public function confirm(User $user, Order $order): bool
+    {
+        // Vendor confirms only pending orders
+        return $user->isVendor()
+            && $order->status === 'pending';
     }
 }

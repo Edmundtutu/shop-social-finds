@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\UpdateOrderRequest;
 use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -132,5 +133,30 @@ class OrderController extends Controller
         $orders = Order::whereIn('shop_id', $shopIds)->with(['items.product', 'user'])->latest()->paginate();
 
         return OrderResource::collection($orders);
+    }
+
+    /**
+     * Confirm and Order with availability check
+     */
+    public function confirmOrder(Order $order): JsonResponse
+    {
+       if( ! $this->authorize('confirm', $order)) {
+         return response()->json(['message' => 'Some error about authpolicy.'], 403);
+       }
+       $order->update(['status' => 'processing']);
+        return response()->json(['message' => 'Order confirmed successfully.']);
+
+    }
+
+    /**
+     * Reject order When not available, cancel and  revert Transaction
+    */
+    public function rejectOrder(Order $order): JsonResponse
+    {
+        $this->authorize('confirm', $order);
+        // TODO When Transactions features are added under payment, revert the transaction here.
+
+        $order->update(['status' => 'cancelled']);
+        return response()->json(['message' => 'Order rejected successfully.']);
     }
 }

@@ -17,6 +17,11 @@ import {
 import { User as UserType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import { useChat } from '@/context/ChatContext';
+import { ConversationList } from '@/components/shared/ConversationList';
+import { NotificationList } from '@/components/shared/NotificationList';
+import { ChatDialog } from '@/components/shared/ChatDialog';
+import type { Conversation } from '@/services/chatService';
 
 interface NavbarProps {
   user: UserType | null;
@@ -28,8 +33,37 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [conversationListOpen, setConversationListOpen] = useState(false);
+  const [notificationListOpen, setNotificationListOpen] = useState(false);
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
 
   const cartItemCount = getItemCount();
+
+  // Safely get chat context with fallback
+  let conversations: Conversation[] = [];
+  let messages: any[] = [];
+  let getUnreadCount = (id: number) => 0;
+  
+  try {
+    const chatContext = useChat();
+    conversations = chatContext.conversations || [];
+    messages = chatContext.messages || [];
+    getUnreadCount = chatContext.getUnreadCount || (() => 0);
+  } catch (error) {
+    // Chat context not available, use fallback values
+    console.warn('Chat context not available:', error);
+  }
+
+  // Calculate total unread messages across all conversations
+  const totalUnreadMessages = conversations.reduce((total, conversation) => {
+    return total + getUnreadCount(conversation.id);
+  }, 0);
+
+  // Calculate total unread notifications
+  const totalUnreadNotifications = messages.filter(
+    msg => !msg.read_at && msg.sender_id !== user?.id
+  ).length;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,13 +72,23 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
     }
   };
 
+  const handleConversationSelect = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+    setChatDialogOpen(true);
+  };
+
+  const handleChatDialogClose = () => {
+    setChatDialogOpen(false);
+    setSelectedConversation(null);
+  };
+
   return (
     <nav className="bg-card/95 backdrop-blur-sm border-b sticky top-0 z-40">
       <div className="mx-auto px-3 sm:px-4 lg:px-6">
         <div className="flex items-center justify-between h-14 lg:h-16">
           {/* Logo - Always visible */}
           <Link to="/" className="text-lg sm:text-xl font-bold text-primary flex-shrink-0">
-            Shopify
+            Foody
           </Link>
 
           {/* Search Bar - Desktop and tablet */}
@@ -65,18 +109,32 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
           {/* Desktop Actions */}
           {user ? (
             <div className="hidden lg:flex items-center space-x-2">
-              <Button variant="ghost" size="icon" className="relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative"
+                onClick={() => setConversationListOpen(true)}
+              >
                 <MessageCircle className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0 bg-blue-500">
-                  2
-                </Badge>
+                {totalUnreadMessages > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0 bg-blue-500">
+                    {totalUnreadMessages > 9 ? '9+' : totalUnreadMessages}
+                  </Badge>
+                )}
               </Button>
 
-              <Button variant="ghost" size="icon" className="relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative"
+                onClick={() => setNotificationListOpen(true)}
+              >
                 <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0 bg-red-500">
-                  3
-                </Badge>
+                {totalUnreadNotifications > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0 bg-red-500">
+                    {totalUnreadNotifications > 9 ? '9+' : totalUnreadNotifications}
+                  </Badge>
+                )}
               </Button>
 
               {user.role === 'customer' && (
@@ -122,11 +180,32 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
           {/* Mobile Actions */}
           {user ? (
             <div className="flex lg:hidden items-center space-x-2">
-              <Button variant="ghost" size="icon" className="relative h-9 w-9">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative h-9 w-9"
+                onClick={() => setConversationListOpen(true)}
+              >
+                <MessageCircle className="h-4 w-4" />
+                {totalUnreadMessages > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-3 w-3 flex items-center justify-center text-xs p-0 bg-blue-500">
+                    {totalUnreadMessages > 9 ? '9+' : totalUnreadMessages}
+                  </Badge>
+                )}
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative h-9 w-9"
+                onClick={() => setNotificationListOpen(true)}
+              >
                 <Bell className="h-4 w-4" />
-                <Badge className="absolute -top-1 -right-1 h-3 w-3 flex items-center justify-center text-xs p-0 bg-red-500">
-                  3
-                </Badge>
+                {totalUnreadNotifications > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-3 w-3 flex items-center justify-center text-xs p-0 bg-red-500">
+                    {totalUnreadNotifications > 9 ? '9+' : totalUnreadNotifications}
+                  </Badge>
+                )}
               </Button>
               
               {user.role === 'customer' && (
@@ -191,6 +270,33 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
           </div>
         )}
       </div>
+
+      {/* Conversation List Dialog */}
+      {conversationListOpen && (
+        <ConversationList
+          isOpen={conversationListOpen}
+          onClose={() => setConversationListOpen(false)}
+          onSelectConversation={handleConversationSelect}
+        />
+      )}
+
+      {/* Notification List Dialog */}
+      {notificationListOpen && (
+        <NotificationList
+          isOpen={notificationListOpen}
+          onClose={() => setNotificationListOpen(false)}
+          onSelectConversation={handleConversationSelect}
+        />
+      )}
+
+      {/* Chat Dialog */}
+      {selectedConversation && chatDialogOpen && (
+        <ChatDialog
+          order={selectedConversation.order}
+          isOpen={chatDialogOpen}
+          onClose={handleChatDialogClose}
+        />
+      )}
     </nav>
   );
 };

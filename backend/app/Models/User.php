@@ -118,4 +118,13 @@ class User extends Authenticatable
             ->where('followable_type', get_class($followable))
             ->exists();
     }
+
+    public function isVendor():bool
+    {
+        return $this->role == 'vendor';
+    }
+    public function isCustomer():bool
+    {
+        return $this->role == 'customer';
+    }
 }

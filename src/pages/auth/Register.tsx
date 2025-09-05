@@ -56,7 +56,7 @@ const Register: React.FC = () => {
       await register(formData);
       toast({
         title: "Account created!",
-        description: "Welcome to Shopify. You can now start shopping.",
+        description: "Welcome to Foody. Spark off with different meals.",
       });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');

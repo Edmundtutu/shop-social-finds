@@ -15,6 +15,9 @@ import {
 import CreatePostCard from '@/components/customer/profile/orders/CreatePostCard';
 import { useImageCapture } from '@/hooks/useImageCapture';
 import CameraCapture from '@/components/features/CameraCapture';
+import { useToast } from '@/hooks/use-toast';
+import { ChatDialog } from './ChatDialog';
+import { useChat } from '@/context/ChatContext';
 
 type OrderCardContext = 'customer' | 'vendor';
 
@@ -23,8 +26,8 @@ interface OrderCardProps {
   context: OrderCardContext;
   onStartPost?: (order: Order) => void;
   isPostDisabled?: boolean;
-  onConfirm?: (order: Order) => void;
-  onReject?: (order: Order) => void;
+  onConfirm?: (order: Order) => Promise<void>;
+  onReject?: (order: Order) => Promise<void>;
   onOpenConversation?: (order: Order) => void;
 }
 
@@ -53,9 +56,64 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                                                       onOpenConversation
                                                     }) => {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [isActionInProgress, setIsActionInProgress] = useState(false);
+  const [hasActionCompleted, setHasActionCompleted] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const imageCapture = useImageCapture();
+  const { toast } = useToast();
+  const { getUnreadCount } = useChat();
   const createdAt = new Date(order.created_at);
   const deliveryType = order.delivery_address && order.delivery_address !== 'N/A for pickup' ? 'Delivery' : 'Pickup';
+
+  // Check if order is in a state that allows confirm/reject actions
+  const canPerformActions = order.status === 'pending';
+  
+  // Check if order has completed an action (confirmed/rejected)
+  const hasCompletedAction = order.status === 'processing' || order.status === 'cancelled';
+
+  const handleConfirm = async () => {
+    if (!onConfirm || isActionInProgress) return;
+    
+    setIsActionInProgress(true);
+    try {
+      await onConfirm(order);
+      setHasActionCompleted(true);
+      toast({
+        title: 'Order Confirmed',
+        description: 'Order has been confirmed successfully.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Confirmation Failed',
+        description: error instanceof Error ? error.message : 'Failed to confirm order.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsActionInProgress(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!onReject || isActionInProgress) return;
+    
+    setIsActionInProgress(true);
+    try {
+      await onReject(order);
+      setHasActionCompleted(true);
+      toast({
+        title: 'Order Rejected',
+        description: 'Order has been rejected successfully.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Rejection Failed',
+        description: error instanceof Error ? error.message : 'Failed to reject order.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsActionInProgress(false);
+    }
+  };
 
   return (
       <Card className="h-full flex flex-col relative w-full min-w-0">
@@ -188,37 +246,57 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             ) : (
                 /* Vendor context - Action buttons */
                 <div className="flex items-center gap-1 sm:gap-2">
-                  {/* Confirm button */}
-                  <button
-                      type="button"
-                      onClick={() => onConfirm?.(order)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-2 rounded-md border border-green-200 text-green-700 hover:bg-green-50 transition-colors min-w-0"
-                      title="Confirm order"
-                  >
-                    <Check className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="hidden sm:inline truncate">Confirm</span>
-                  </button>
+                  {/* Confirm and Reject buttons - only show for pending orders and before action completion */}
+                  {canPerformActions && !hasActionCompleted && (
+                    <>
+                      <button
+                          type="button"
+                          onClick={handleConfirm}
+                          disabled={isActionInProgress}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-2 rounded-md border border-green-200 text-green-700 hover:bg-green-50 transition-colors min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Confirm order"
+                      >
+                        <Check className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="hidden sm:inline truncate">
+                          {isActionInProgress ? 'Confirming...' : 'Confirm'}
+                        </span>
+                      </button>
 
-                  {/* Reject button */}
-                  <button
-                      type="button"
-                      onClick={() => onReject?.(order)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-2 rounded-md border border-red-200 text-red-700 hover:bg-red-50 transition-colors min-w-0"
-                      title="Reject order"
-                  >
-                    <X className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="hidden sm:inline truncate">Reject</span>
-                  </button>
+                      <button
+                          type="button"
+                          onClick={handleReject}
+                          disabled={isActionInProgress}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-2 rounded-md border border-red-200 text-red-700 hover:bg-red-50 transition-colors min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Reject order"
+                      >
+                        <X className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="hidden sm:inline truncate">
+                          {isActionInProgress ? 'Rejecting...' : 'Reject'}
+                        </span>
+                      </button>
+                    </>
+                  )}
 
-                  {/* Open conversation button */}
+                  {/* Chat button - always visible for vendor context */}
                   <button
                       type="button"
-                      onClick={() => onOpenConversation?.(order)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-2 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors min-w-0"
+                      onClick={() => setIsChatOpen(true)}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-2 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors min-w-0 relative"
                       title="Open conversation"
                   >
                     <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="hidden sm:inline truncate">Chat</span>
+                    {/* Unread message badge */}
+                    {(() => {
+                      // We need to get the conversation ID for this order to check unread count
+                      // For now, we'll show a placeholder - this would need to be connected to the actual conversation
+                      const unreadCount = 0; // getUnreadCount(conversationId);
+                      return unreadCount > 0 ? (
+                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </Badge>
+                      ) : null;
+                    })()}
                   </button>
                 </div>
             )}
@@ -234,6 +312,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               </div>
           )}
         </CardContent>
+
+        {/* Chat Dialog */}
+        {context === 'vendor' && (
+          <ChatDialog
+            order={order}
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+          />
+        )}
       </Card>
   );
 };

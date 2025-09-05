@@ -90,6 +90,13 @@ const Cart: React.FC = () => {
   const handleCheckout = async () => {
     if (!canCheckout) return;
 
+    // Debug: Log the cart state and items being processed
+    console.log('=== CART CHECKOUT DEBUG ===');
+    console.log('Cart items:', items);
+    console.log('Items by shop:', itemsByShop);
+    console.log('Total with add-ons:', getTotalWithAddOns());
+    console.log('Legacy total:', getTotal());
+
     if (deliveryType === 'delivery' && !deliveryAddress.trim()) {
       toast({
         title: 'Delivery address required',
@@ -105,6 +112,9 @@ const Cart: React.FC = () => {
       const shopIdStr = String(shopItems?.[0]?.shop?.id ?? groupKey);
       const isValidUlid = (val: string) => /^[0-9A-HJKMNP-TV-Z]{26}$/i.test(val);
 
+      // Debug: Log each shop's items being processed
+      console.log(`Processing shop ${shopIdStr}:`, shopItems);
+
       if (!shopIdStr || !isValidUlid(shopIdStr)) {
         toast({
           title: 'Checkout failed',
@@ -114,7 +124,7 @@ const Cart: React.FC = () => {
         throw new Error('Invalid ULID for shop_id');
       }
 
-      return {
+      const payload = {
         shop_id: shopIdStr,
         items: shopItems.map((item) => ({
           product_id: String(item.product.id),
@@ -134,7 +144,15 @@ const Cart: React.FC = () => {
         delivery_lng: deliveryCoords.lng,
         notes: notes || undefined,
       };
+
+      // Debug: Log the constructed payload for this shop
+      console.log(`Shop ${shopIdStr} payload:`, payload);
+      return payload;
     });
+
+    // Debug: Log all payloads being sent
+    console.log('=== FINAL PAYLOADS TO SEND ===');
+    console.log('All payloads:', payloads);
 
     const orderCreationPromises = payloads.map((p) => placeOrder(p));
 
@@ -150,6 +168,12 @@ const Cart: React.FC = () => {
       // Errors handled in onError; keep catch to avoid unhandled rejections
       // eslint-disable-next-line no-console
       console.error('An error occurred during checkout:', error);
+      // Debug: Log the full error details
+      console.error('Full error object:', error);
+      if (error && typeof error === 'object' && 'response' in error) {
+        console.error('Response data:', (error as any).response?.data);
+        console.error('Response status:', (error as any).response?.status);
+      }
     }
   };
 
