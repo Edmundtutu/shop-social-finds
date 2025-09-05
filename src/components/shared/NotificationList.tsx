@@ -4,7 +4,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Bell, MessageCircle, Clock, User, Store, Package } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Bell, MessageCircle, Clock, User, Store, Package, AlertTriangle } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { useAuth } from '@/context/AuthContext';
 import type { Conversation, Message } from '@/services/chatService';
@@ -32,7 +33,20 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   onSelectConversation,
 }) => {
   const { user } = useAuth();
-  const { conversations, messages } = useChat();
+  
+  // Safely get chat context with error handling
+  let conversations: Conversation[] = [];
+  let messages: Message[] = [];
+  let chatError: string | null = null;
+
+  try {
+    const chatContext = useChat();
+    conversations = chatContext.conversations || [];
+    messages = chatContext.messages || [];
+  } catch (error) {
+    console.warn('Chat context not available in NotificationList:', error);
+    chatError = 'Notification service is currently unavailable';
+  }
 
   // Generate notifications from unread messages
   const generateNotifications = (): Notification[] => {
@@ -125,7 +139,17 @@ export const NotificationList: React.FC<NotificationListProps> = ({
 
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-2">
-            {notifications.length === 0 ? (
+            {chatError ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{chatError}</AlertDescription>
+                </Alert>
+                <Button variant="outline" onClick={onClose}>
+                  Close
+                </Button>
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Bell className="h-12 w-12 text-muted-foreground mb-4" />
                 <div className="text-muted-foreground">No notifications</div>

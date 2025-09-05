@@ -6,6 +6,7 @@ import { CartProvider } from '../context/CartContext';
 import {ChatProvider} from "@/context/ChatContext.tsx";
 import { FavoritesProvider } from '../context/FavoritesContext';
 import { Toaster } from '../components/ui/toaster';
+import ErrorBoundary from '../components/ErrorBoundary';
 import AppRoutes from '../routes/AppRoutes';
 import '../styles/index.css';
 
@@ -20,22 +21,26 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ChatProvider>
-          <CartProvider>
-            <FavoritesProvider>
-              <Router>
-                <div className="App min-h-screen bg-background">
-                  <AppRoutes />
-                  <Toaster />
-                </div>
-              </Router>
-            </FavoritesProvider>
-          </CartProvider>
-          </ChatProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ErrorBoundary>
+            <ChatProvider>
+              <CartProvider>
+                <FavoritesProvider>
+                  <Router>
+                    <div className="App min-h-screen bg-background">
+                      <AppRoutes />
+                      <Toaster />
+                    </div>
+                  </Router>
+                </FavoritesProvider>
+              </CartProvider>
+            </ChatProvider>
+          </ErrorBoundary>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
