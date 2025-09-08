@@ -45,14 +45,42 @@ export interface GetConversationPayload {
 
 // Get or create conversation for an order
 export const getConversation = async (payload: GetConversationPayload): Promise<Conversation> => {
-  const response = await api.post<ApiResponse<Conversation>>(`${apiVersion}/chat/conversation`, payload);
-  return response.data.data;
+  console.log('🌐 API getConversation called with payload:', payload);
+  console.log('🔗 API URL:', `${apiVersion}/chat/conversation`);
+  
+  try {
+    const response = await api.post<{ conversation: Conversation }>(`${apiVersion}/chat/conversation`, payload);
+    console.log('📡 API response received:', response);
+    console.log('📊 Response data structure:', response.data);
+    console.log('💬 Conversation data:', response.data.conversation);
+    
+    return response.data.conversation;
+  } catch (error) {
+    console.error('❌ API getConversation error:', error);
+    console.error('❌ Error response:', error.response?.data);
+    console.error('❌ Error status:', error.response?.status);
+    throw error;
+  }
 };
 
 // Send a message
 export const sendMessage = async (payload: SendMessagePayload): Promise<Message> => {
-  const response = await api.post<ApiResponse<Message>>(`${apiVersion}/chat/message`, payload);
-  return response.data.data;
+  console.log('🌐 API sendMessage called with payload:', payload);
+  console.log('🔗 API URL:', `${apiVersion}/chat/message`);
+  
+  try {
+    const response = await api.post<{ message: Message }>(`${apiVersion}/chat/message`, payload);
+    console.log('📡 API response received:', response);
+    console.log('📊 Response data structure:', response.data);
+    console.log('💬 Message data:', response.data.message);
+    
+    return response.data.message;
+  } catch (error) {
+    console.error('❌ API sendMessage error:', error);
+    console.error('❌ Error response:', error.response?.data);
+    console.error('❌ Error status:', error.response?.status);
+    throw error;
+  }
 };
 
 // Get conversation messages

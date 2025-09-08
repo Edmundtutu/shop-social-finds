@@ -60,17 +60,38 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
   // Initialize conversation when dialog opens
   useEffect(() => {
     const init = async () => {
-      if (!isOpen || !order?.id) return;
+      console.log('🔄 ChatDialog initialization started');
+      console.log('📊 Dialog state:', { isOpen, orderId: order?.id });
+      
+      if (!isOpen || !order?.id) {
+        console.log('⏭️ Skipping initialization - dialog not open or no order ID');
+        return;
+      }
+      
       try {
+        console.log('🔍 Ensuring conversation for order:', order.id);
+        console.log('🔧 ensureConversationForOrder function:', typeof ensureConversationForOrder);
+        
         const conversation = await ensureConversationForOrder(String(order.id));
+        console.log('💬 Conversation result:', conversation);
+        
+        console.log('🎯 Setting active conversation');
         setActiveConversation(conversation);
+        
         // Set user as online when opening chat
         if (conversation) {
+          console.log('🟢 Setting user presence to online for conversation:', conversation.id);
           updatePresence(conversation.id, 'online');
+        } else {
+          console.log('⚠️ No conversation returned from ensureConversationForOrder');
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to init conversation:', e);
+        console.error('❌ Failed to init conversation:', e);
+        console.error('❌ Error details:', {
+          message: e.message,
+          stack: e.stack,
+          name: e.name
+        });
       }
     };
     init();
@@ -84,24 +105,47 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
   }, [isOpen, activeConversation, updatePresence]);
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !activeConversation) return;
+    console.log('🚀 handleSendMessage called');
+    console.log('📝 Message text:', messageText);
+    console.log('💬 Active conversation:', activeConversation);
+    console.log('👤 Current user:', user);
+    
+    if (!messageText.trim() || !activeConversation) {
+      console.log('❌ Validation failed - messageText:', !!messageText.trim(), 'activeConversation:', !!activeConversation);
+      return;
+    }
+
+    console.log('✅ Validation passed, proceeding with message send');
 
     try {
       // Stop typing indicator when sending
       if (isTyping) {
+        console.log('🛑 Stopping typing indicator');
         await stopTyping(activeConversation.id);
         setIsTyping(false);
       }
 
-      await sendMessage({
+      const messagePayload = {
         conversation_id: activeConversation.id,
         content: messageText.trim(),
         message_type: 'text',
-      });
+      };
+      
+      console.log('📤 Sending message with payload:', messagePayload);
+      console.log('🔧 sendMessage function:', typeof sendMessage);
+      
+      const result = await sendMessage(messagePayload);
+      console.log('✅ Message sent successfully, result:', result);
+      
       setMessageText('');
+      console.log('🧹 Message text cleared');
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to send message:', error);
+      console.error('❌ Failed to send message:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
     }
   };
 
@@ -281,7 +325,7 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
             <QuickChatActions 
               onActionSelect={handleQuickAction}
               orderStatus={order.status}
-              userRole={user?.role}
+              userRole={(user?.role === 'guest' ? 'customer' : user?.role) as 'customer' | 'vendor'}
             />
           )}
 

@@ -28,14 +28,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/user', [AuthController::class, 'user']);
 
         // Inventory react flow nodes and edges routes
-        Route::get('/Inventory/{shop}/graph', [InventoryController::class, 'getGraph']);
+        Route::get('/inventory/{shop}/graph', [InventoryController::class, 'getGraph']);
 
-        Route::post('/Inventory/nodes', [InventoryController::class, 'storeNode']);
-        Route::patch('/Inventory/nodes/{node}', [InventoryController::class, 'updateNode'])->middleware('can:update,node');
-        Route::delete('/Inventory/nodes/{node}', [InventoryController::class, 'destroyNode'])->middleware('can:delete,node');
+        Route::post('/inventory/nodes', [InventoryController::class, 'storeNode']);
+        Route::patch('/inventory/nodes/{node}', [InventoryController::class, 'updateNode'])->middleware('can:update,node');
+        Route::delete('/inventory/nodes/{node}', [InventoryController::class, 'destroyNode'])->middleware('can:delete,node');
 
-        Route::post('/Inventory/edges', [InventoryController::class, 'storeEdge']);
-        Route::delete('/Inventory/edges/{edge}', [InventoryController::class, 'destroyEdge'])->middleware('can:delete,edge');
+        Route::post('/inventory/edges', [InventoryController::class, 'storeEdge']);
+        Route::delete('/inventory/edges/{edge}', [InventoryController::class, 'destroyEdge'])->middleware('can:delete,edge');
 
         Route::patch('/nodes/{node}/position', [InventoryController::class, 'updateNodePosition'])->middleware('can:update,node');
     });

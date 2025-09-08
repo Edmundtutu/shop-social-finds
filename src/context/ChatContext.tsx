@@ -167,9 +167,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Subscribe to Echo channel for a conversation
   const subscribeToConversation = useCallback((conversationId: number) => {
+    console.log('🔌 subscribeToConversation called with conversationId:', conversationId);
     try {
       dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' });
+      console.log('🔧 Getting Echo instance...');
       const echo = getEcho();
+      console.log('🔌 Echo instance obtained:', !!echo);
       console.log('🔌 Subscribing to conversation channel:', conversationId);
       
       // Unsubscribe previous
@@ -289,8 +292,25 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Ensure a conversation exists for an order and return it
   const ensureConversationForOrder = useCallback(async (orderId: string) => {
-    const resp = await apiGetConversation({ order_id: orderId });
-    return resp;
+    console.log('🔍 ensureConversationForOrder called with orderId:', orderId);
+    console.log('🔧 apiGetConversation function:', typeof apiGetConversation);
+    
+    try {
+      console.log('📡 Calling apiGetConversation...');
+      const resp = await apiGetConversation({ order_id: orderId });
+      console.log('💬 Conversation API response:', resp);
+      return resp;
+    } catch (error) {
+      console.error('❌ Failed to get/create conversation:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      throw error;
+    }
   }, []);
 
   // Load messages for a conversation
@@ -307,18 +327,34 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Send a message
-  const sendMessage = useCallback(async (payload: SendMessagePayload) => {
+  const sendMessage = useCallback(async (payload: SendMessagePayload): Promise<void> => {
+    console.log('🎯 ChatContext sendMessage called with payload:', payload);
+    console.log('🔧 apiSendMessage function:', typeof apiSendMessage);
+    
     try {
+      console.log('📡 Calling apiSendMessage...');
       const sent = await apiSendMessage(payload);
+      console.log('📨 API response received:', sent);
       
       // Only add message locally if we sent it (avoid duplicates from real-time)
       // The real-time listener will handle incoming messages from others
+      console.log('💾 Dispatching ADD_MESSAGE action');
       dispatch({ type: 'ADD_MESSAGE', payload: sent });
+      
+      console.log('🔄 Dispatching UPDATE_CONVERSATION_LAST_MESSAGE action');
       dispatch({ type: 'UPDATE_CONVERSATION_LAST_MESSAGE', payload: { conversationId: sent.conversation_id, message: sent } });
       
       console.log('✅ Message sent successfully:', sent.id);
     } catch (error) {
       console.error('❌ Failed to send message:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
       toast({
         title: 'Failed to send message',
         description: 'There was an error sending your message. Please try again.',

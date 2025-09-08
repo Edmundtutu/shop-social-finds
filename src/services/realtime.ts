@@ -10,6 +10,7 @@ export function getEcho(): Echo<any> {
   const host = import.meta.env.VITE_REVERB_HOST;
   const port = import.meta.env.VITE_REVERB_PORT ?? 80;
   const scheme = import.meta.env.VITE_REVERB_SCHEME ?? 'https';
+  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
   const token = localStorage.getItem('auth-token') || localStorage.getItem('auth_token');
 
   // Check for required configuration
@@ -33,7 +34,9 @@ export function getEcho(): Echo<any> {
       wsPort: port,
       wssPort: port,
       forceTLS: scheme === 'https',
-      enabledTransports: ['ws', 'wss'],
+      enabledTransports: scheme === 'https' ? ['wss', 'ws'] : ['ws'],
+      // IMPORTANT: Auth endpoint must be on  API (Laravel app), not the Reverb server
+      authEndpoint: apiBaseUrl ? `${apiBaseUrl}/broadcasting/auth` : undefined,
       auth: {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       },

@@ -77,7 +77,7 @@ class ChatController extends Controller
                 'sender_type' => Auth::user()->shops->contains('id', $conversation->shop_id) ? 'shop' : 'user',
                 'content' => $validated['content'],
                 'message_type' => $validated['message_type'],
-                'media_url' => $validated['media_url'],
+                'media_url' => $validated['media_url'] ?? null,
             ]);
 
             // Update conversation last_message_at
