@@ -42,7 +42,7 @@ export const ChatDiagnostics: React.FC<DiagnosticsProps> = ({ isOpen, onClose })
     // Check authentication
     results.auth = {
       token: !!(localStorage.getItem('auth-token') || localStorage.getItem('auth_token')),
-      user: !!chatContext.user,
+      user: !!chatContext.conversations,
     };
 
     // Check WebSocket connection

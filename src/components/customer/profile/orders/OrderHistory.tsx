@@ -13,7 +13,7 @@ const OrderHistory: React.FC = () => {
 
   // All hooks must be called unconditionally on every render
   const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
-  const expandPostRef = useRef<() => void>();
+  const expandPostRef = useRef<() => void>(() => {});
 
   const handleStartPost = (order: Order) => {
     setActiveOrderId(order.id);
@@ -60,9 +60,9 @@ const OrderHistory: React.FC = () => {
             onStartPost={handleStartPost}
             isPostDisabled={false}
             // Since the props are not important on this component then return null
-            onConfirm={null}
-            onOpenConversation={null}
-            onReject={null}
+            onConfirm={async () => {}}
+            onOpenConversation={async () => {}}
+            onReject={async () => {}}
           />
         ))}
       </div>

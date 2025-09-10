@@ -54,7 +54,16 @@ const VendorOrders: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 auto-rows-fr">
           {orders.map((order) => (
-            <OrderCard key={order.id} order={order} context="vendor" onConfirm={handleConfirmOrder(order)} onReject={handleReject(order)} />
+            <OrderCard 
+              key={order.id} 
+              order={order} 
+              context="vendor" 
+              onConfirm={async () => { await confirmOrder(order.id); toast.success('Order confirmed successfully'); }}
+              onReject={async () => { await rejectOrder(order.id); toast.success('Order cancelled'); }}
+              onOpenConversation={() => {}}
+              onStartPost={() => {}}
+              isPostDisabled={true}
+            />
           ))}
         </div>
       )}
