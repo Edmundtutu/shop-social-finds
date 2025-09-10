@@ -65,7 +65,8 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
     case 'SET_ERROR':
       return { ...state, error: action.payload };
     case 'SET_CONVERSATIONS':
-      return { ...state, conversations: action.payload };
+      // Ensure conversations is always an array
+      return { ...state, conversations: action.payload ?? [] };
     case 'SET_ACTIVE_CONVERSATION':
       return { ...state, activeConversation: action.payload, messages: action.payload ? state.messages : [] };
     case 'SET_MESSAGES':
@@ -73,9 +74,10 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
     case 'ADD_MESSAGE':
       return { ...state, messages: [...state.messages, action.payload] };
     case 'UPDATE_CONVERSATION_LAST_MESSAGE':
+      // Guard against undefined conversations
       return {
         ...state,
-        conversations: state.conversations.map(conv =>
+        conversations: (state.conversations || []).map(conv =>
           conv.id === action.payload.conversationId
             ? { ...conv, last_message_at: action.payload.message.created_at }
             : conv
@@ -282,7 +284,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const isVendor = Array.isArray((user as any)?.shops) && (user as any).shops.length > 0;
       const conversations = isVendor ? await apiGetShopConversations() : await apiGetUserConversations();
-      dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
+      const safeConversations = Array.isArray(conversations) ? conversations : [];
+      dispatch({ type: 'SET_CONVERSATIONS', payload: safeConversations });
       dispatch({ type: 'SET_LOADING', payload: false });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to load conversations' });
@@ -318,7 +321,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const { messages } = await apiGetMessages(conversationId);
-      dispatch({ type: 'SET_MESSAGES', payload: messages });
+      const safeMessages = Array.isArray(messages) ? messages : [];
+      dispatch({ type: 'SET_MESSAGES', payload: safeMessages });
       dispatch({ type: 'SET_LOADING', payload: false });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to load messages' });
