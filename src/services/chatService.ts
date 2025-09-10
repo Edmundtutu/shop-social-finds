@@ -88,7 +88,26 @@ export const getMessages = async (conversationId: number, page: number = 1): Pro
   const response = await api.get<ApiResponse<{ messages: Message[]; pagination: any }>>(
     `${apiVersion}/chat/conversations/${conversationId}/messages?page=${page}`
   );
-  return response.data.data;
+  const payload: any = (response as any).data;
+  const root = payload?.data ?? payload;
+
+  // Normalize various possible shapes
+  const messagesCandidate =
+    Array.isArray(root?.messages) ? root.messages :
+    Array.isArray(root?.messages?.data) ? root.messages.data :
+    Array.isArray(root?.data?.messages) ? root.data.messages :
+    Array.isArray(root?.data) ? root.data :
+    [];
+
+  const messages: Message[] = Array.isArray(messagesCandidate) ? messagesCandidate : [];
+
+  const pagination =
+    root?.pagination ??
+    root?.messages?.meta ??
+    root?.meta ??
+    null;
+
+  return { messages, pagination };
 };
 
 // Mark messages as read
@@ -99,14 +118,36 @@ export const markAsRead = async (conversationId: number): Promise<{ message: str
 
 // Get user's conversations
 export const getUserConversations = async (): Promise<Conversation[]> => {
-  const response = await api.get<ApiResponse<Conversation[]>>(`${apiVersion}/chat/conversations/user`);
-  return response.data.data;
+  const response = await api.get<ApiResponse<any>>(`${apiVersion}/chat/conversations/user`);
+  const payload: any = (response as any).data;
+  const root = payload?.data ?? payload;
+  const conversations = Array.isArray(root)
+    ? root
+    : Array.isArray(root?.conversations?.data)
+      ? root.conversations.data
+      : Array.isArray(root?.conversations)
+        ? root.conversations
+        : Array.isArray(root?.data)
+          ? root.data
+          : [];
+  return conversations;
 };
 
 // Get shop's conversations
 export const getShopConversations = async (): Promise<Conversation[]> => {
-  const response = await api.get<ApiResponse<Conversation[]>>(`${apiVersion}/chat/conversations/shop`);
-  return response.data.data;
+  const response = await api.get<ApiResponse<any>>(`${apiVersion}/chat/conversations/shop`);
+  const payload: any = (response as any).data;
+  const root = payload?.data ?? payload;
+  const conversations = Array.isArray(root)
+    ? root
+    : Array.isArray(root?.conversations?.data)
+      ? root.conversations.data
+      : Array.isArray(root?.conversations)
+        ? root.conversations
+        : Array.isArray(root?.data)
+          ? root.data
+          : [];
+  return conversations;
 };
 
 // Start typing indicator

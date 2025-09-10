@@ -32,6 +32,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   // Safely get chat context with error handling
   let conversations: Conversation[] = [];
   let getUnreadCount = (id: number) => 0;
+  let getTypingUsers: (conversationId: number) => { name: string; type: string }[] = () => [];
+  let getOnlineUsers: (conversationId: number) => string[] = () => [];
   let isLoading = false;
   let chatError: string | null = null;
 
@@ -39,6 +41,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
     const chatContext = useChat();
     conversations = chatContext.conversations || [];
     getUnreadCount = chatContext.getUnreadCount || (() => 0);
+    getTypingUsers = chatContext.getTypingUsers || (() => []);
+    getOnlineUsers = chatContext.getOnlineUsers || (() => []);
     isLoading = chatContext.isLoading || false;
   } catch (error) {
     console.warn('Chat context not available in ConversationList:', error);
@@ -68,10 +72,17 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   };
 
   const getConversationSubtitle = (conversation: Conversation) => {
-    if (conversation.messages && conversation.messages.length > 0) {
-      const lastMessage = conversation.messages[conversation.messages.length - 1];
-      const prefix = lastMessage.sender_type === 'user' ? 'You: ' : '';
-      return `${prefix}${lastMessage.content}`;
+    // API returns latest_message in snake_case
+    const latest = (conversation as any).latest_message;
+    // If someone is typing in this conversation, show that hint
+    const typing = getTypingUsers(conversation.id);
+    if (typing.length > 0) {
+      const names = typing.map(t => t.name).join(', ');
+      return `${names} ${typing.length === 1 ? 'is' : 'are'} typing...`;
+    }
+    if (latest) {
+      const prefix = latest.sender_type === 'user' ? 'You: ' : '';
+      return `${prefix}${latest.content}`;
     }
     return 'No messages yet';
   };
@@ -156,6 +167,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                   const title = getConversationTitle(conversation);
                   const subtitle = getConversationSubtitle(conversation);
                   const time = conversation.last_message_at ? formatTime(conversation.last_message_at) : '';
+                const online = getOnlineUsers(conversation.id);
 
                   return (
                     <Button
@@ -262,6 +274,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                 const title = getConversationTitle(conversation);
                 const subtitle = getConversationSubtitle(conversation);
                 const time = conversation.last_message_at ? formatTime(conversation.last_message_at) : '';
+                const online = getOnlineUsers(conversation.id);
 
                 return (
                   <Button
@@ -294,8 +307,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                         <div className="flex items-center gap-2 text-xs text-muted-foreground truncate mb-1">
                           <Package className="h-3 w-3" />
                           <span>Order #{conversation.order_id}</span>
-                          <ChatStatusIndicator 
-                            status="offline" 
+                          <ChatStatusIndicator
+                            status={online.length > 0 ? 'online' : 'offline'}
                             lastSeen={conversation.last_message_at}
                             className="ml-auto"
                           />

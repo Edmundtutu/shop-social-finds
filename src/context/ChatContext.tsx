@@ -339,24 +339,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('📡 Calling apiSendMessage...');
       const sent = await apiSendMessage(payload);
       console.log('📨 API response received:', sent);
-      
-      // Only add message locally if we sent it (avoid duplicates from real-time)
-      // The real-time listener will handle incoming messages from others
-      console.log('💾 Dispatching ADD_MESSAGE action');
-      dispatch({ type: 'ADD_MESSAGE', payload: sent });
-      
-      console.log('🔄 Dispatching UPDATE_CONVERSATION_LAST_MESSAGE action');
-      dispatch({ type: 'UPDATE_CONVERSATION_LAST_MESSAGE', payload: { conversationId: sent.conversation_id, message: sent } });
-      
-      console.log('✅ Message sent successfully:', sent.id);
+      // Rely solely on real-time broadcast to add the message to state
+      // This prevents any chance of duplicates/flicker
+      console.log('✅ Message sent successfully (awaiting real-time echo):', sent.id);
     } catch (error) {
       console.error('❌ Failed to send message:', error);
       console.error('❌ Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        response: error.response?.data,
-        status: error.response?.status
+        message: (error as any).message,
+        stack: (error as any).stack,
+        name: (error as any).name,
+        response: (error as any).response?.data,
+        status: (error as any).response?.status
       });
       
       toast({
@@ -400,17 +393,27 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.conversations]);
 
   const getUnreadCount = useCallback((conversationId: number) => {
-    // Get unread count from conversation's messages, not just active conversation messages
-    const conversation = state.conversations.find(conv => conv.id === conversationId);
+    // Prefer server-provided unread count if available
+    const conversation = state.conversations.find(conv => conv.id === conversationId) as any;
     if (!conversation) return 0;
-    
-    // If we have messages loaded for this conversation, count unread
+
+    // If we have messages loaded for this conversation, count unread locally
     const conversationMessages = state.messages.filter(msg => msg.conversation_id === conversationId);
     if (conversationMessages.length > 0) {
       return conversationMessages.filter(msg => !msg.read_at && msg.sender_id !== user?.id).length;
     }
-    
-    // Fallback: estimate from conversation data if available
+
+    // Server-provided unread_count support
+    if (typeof conversation.unread_count === 'number') {
+      return conversation.unread_count;
+    }
+
+    // Fallback heuristic using latest_message if available
+    const latest = conversation.latest_message;
+    if (latest && !latest.read_at && latest.sender_id !== user?.id) {
+      return 1;
+    }
+
     return 0;
   }, [state.messages, state.conversations, user?.id]);
 
@@ -472,6 +475,21 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         currentChannelRef.current = null;
       }
+    };
+  }, [user, loadConversations]);
+
+  // Background polling to keep conversations (and unread badges) fresh
+  useEffect(() => {
+    if (!user) return;
+    const interval = window.setInterval(() => {
+      // Only poll when tab is visible to avoid unnecessary work
+      if (document.visibilityState === 'visible') {
+        loadConversations();
+      }
+    }, 15000); // every 15 seconds
+
+    return () => {
+      window.clearInterval(interval);
     };
   }, [user, loadConversations]);
 
