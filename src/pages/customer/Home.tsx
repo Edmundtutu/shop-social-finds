@@ -10,7 +10,10 @@ import QuickStatsGrid from '@/components/customer/home/QuickStatsGrid';
 import CameraCapture from '@/components/features/CameraCapture';
 import { useImageCapture } from '@/hooks/useImageCapture';
 import { MessageCircle } from 'lucide-react';
-import {TextCarousel} from '@/components/features/TextCarousel';
+import { TextCarousel } from '@/components/features/TextCarousel';
+import StoriesCarousel from '@/components/features/StoriesCarousel';
+import { storyService } from '@/services/storyService';
+import { toast } from 'sonner';
 
 const Home: React.FC = () => {
   const { user } = useAuth();
@@ -21,8 +24,17 @@ const Home: React.FC = () => {
     queryFn: postService.getPosts,
   });
 
+  const { data: storiesData, isLoading: storiesLoading } = useQuery({
+    queryKey: ['stories'],
+    queryFn: storyService.getActiveStories,
+  });
+
   const handleCameraCapture = (imageData: string) => imageCapture.handleCameraCapture(imageData);
   const handleCameraClose = () => imageCapture.handleCameraClose();
+
+  const handleStoryReaction = (storyId: string, emoji: string) => {
+    toast.success(`Reacted to story with ${emoji}`);
+  };
 
   if (isLoading) {
     return (
@@ -63,6 +75,14 @@ const Home: React.FC = () => {
       </div>
 
       <QuickStatsGrid />
+
+      {/* Stories Carousel */}
+      {!storiesLoading && storiesData && storiesData.length > 0 && (
+        <StoriesCarousel 
+          stories={storiesData} 
+          onReaction={handleStoryReaction}
+        />
+      )}
 
       {/* Post creation removed per new requirement: must be initiated from OrderHandlers */}
 
