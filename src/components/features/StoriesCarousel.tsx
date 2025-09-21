@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import Zuck from "zuck.js";
-import "zuck.js/dist/zuck.min.css";
 import { type VendorStories } from '@/data/demoStories';
 import { storyService } from '@/services/storyService';
 import { toast } from 'sonner';
