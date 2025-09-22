@@ -1,29 +1,37 @@
-import React, { ReactNode } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React from 'react';
 
 export interface StatsCardProps {
-  icon: ReactNode;
+  icon: React.ElementType;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   gradientFrom: string;
   gradientTo: string;
   onClick?: () => void;
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({ icon, title, subtitle, gradientFrom, gradientTo, onClick }) => {
+const ActionButton: React.FC<StatsCardProps> = ({ icon: Icon, title, subtitle, gradientFrom, gradientTo, onClick }) => {
   return (
-    <Card className="hover:shadow-md transition-all duration-200 cursor-pointer" onClick={onClick}>
-      <CardContent className="p-3 lg:p-4 text-center">
-        <div className={`w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${gradientFrom} ${gradientTo} rounded-full flex items-center justify-center mx-auto mb-2`}>
-          {icon}
-        </div>
-        <h3 className="font-semibold text-sm lg:text-base">{title}</h3>
-        <p className="text-xs lg:text-sm text-muted-foreground">{subtitle}</p>
-      </CardContent>
-    </Card>
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50 transition-colors"
+    >
+      <div className={`bg-gradient-to-br ${gradientFrom} ${gradientTo} p-2 rounded-full mb-2`}>
+        <Icon className="w-4 h-4 text-white" />
+      </div>
+      <span className="text-xs text-gray-500">
+        {title}
+      </span>
+      {
+        subtitle && (
+          <span className="text-xs text-gray-500">
+            {subtitle}
+          </span>
+        )
+      }
+    </button>
   );
 };
 
-export default StatsCard;
+export default ActionButton;
 
 

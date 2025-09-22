@@ -52,75 +52,82 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 lg:space-y-6">
-      {/* Welcome Header - Facebook-style */}
-      <div className="text-center py-4 lg:py-6">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">
-          Hey, {user?.name}!
-        </h1>
-        <TextCarousel
-          className="text-muted-foreground text-sm lg:text-base"
-          texts={[
-            'Share your shopping experience',
-            'Nearby Resturants Have nice food!! Read the Post',
-            'What is your location today',
-            'Where will you go for shopping',
-            'Join your friends for a bite',
-            'Pictures of your purchase will guide a friend',
-            'Enjoy your experience with friends',
-          ]}
-          interval={4000}
-          transitionDuration={300}
-        />
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <div className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="px-4 py-4">
+          <div className="flex items-center space-x-4">
+            <div className="flex-shrink-0">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="User Avatar"
+                  className="w-12 h-12 rounded-full border-2 border-gray-200 object-cover"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center">
+                  <span className="text-xl font-semibold text-gray-600">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+            <TextCarousel
+              className="flex-1 text-muted-foreground text-sm"
+              texts={[
+                'Share your shopping experience',
+                'Nearby Restaurants Have nice food!! Read the Post',
+                'What is your location today',
+                'Where will you go for shopping',
+                'Join your friends for a bite',
+                'Pictures of your purchase will guide a friend',
+                'Enjoy your experience with friends',
+              ]}
+              interval={4000}
+              transitionDuration={300}
+            />
+          </div>
+        </div>
+        <div className="border-b border-gray-200"></div>
+        <QuickStatsGrid />
       </div>
 
-      <QuickStatsGrid />
+      {/* Main Content */}
+      <div className="p-4 space-y-4">
+        {/* Stories Carousel */}
+        {!storiesLoading && storiesData && storiesData.length > 0 && (
+          <StoriesCarousel stories={storiesData} onReaction={handleStoryReaction} />
+        )}
 
-      {/* Stories Carousel */}
-      {!storiesLoading && storiesData && storiesData.length > 0 && (
-        <StoriesCarousel 
-          stories={storiesData} 
-          onReaction={handleStoryReaction}
-        />
-      )}
-
-      {/* Post creation removed per new requirement: must be initiated from OrderHandlers */}
+        {/* Feed */}
+        {!postsData || postsData.length === 0 ? (
+          <Card className="shadow-sm">
+            <CardContent className="p-8 text-center">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageCircle className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
+              <p className="text-muted-foreground mb-6 text-sm max-w-md mx-auto">
+                Start following others to see their posts, or create your first post!
+              </p>
+              <Button asChild>
+                <Link to="/discover">Discover Products</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {postsData.map((post) => (
+              <PostItem key={post.id} post={post} />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Full-Page Camera Modal */}
       {imageCapture.showCameraModal && (
         <div className="fixed inset-0 z-50 bg-background">
-          <CameraCapture 
-            onCapture={handleCameraCapture}
-            onClose={handleCameraClose}
-          />
-        </div>
-      )}
-
-      {/* Feed */}
-      {/* Use postsData directly from useQuery */}
-      {!postsData || postsData.length === 0 ? (
-        <Card className="shadow-sm">
-          <CardContent className="p-8 lg:p-12 text-center">
-            <div className="w-16 h-16 lg:w-20 lg:h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg lg:text-xl font-semibold mb-2">No posts yet</h3>
-            <p className="text-muted-foreground mb-6 text-sm lg:text-base max-w-md mx-auto">
-              Start following other users and shops to see their posts in your feed, or create your first post!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button asChild>
-                <Link to="/discover">Discover Products</Link>
-              </Button>
-              {/* Creation moved to OrderHandlers tab; remove CTA from Home */}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4 lg:space-y-6">
-          {postsData.map((post) => ( // Use postsData here
-            <PostItem key={post.id} post={post} /> // Use PostItem component
-          ))}
+          <CameraCapture onCapture={handleCameraCapture} onClose={handleCameraClose} />
         </div>
       )}
     </div>

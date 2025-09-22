@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import Zuck from "zuck.js";
+import { Zuck } from "zuck.js";
 import { type VendorStories } from '@/data/demoStories';
 import { storyService } from '@/services/storyService';
 import { toast } from 'sonner';
+import '@/styles/components/stories-carousel.css';
 
 interface StoriesCarouselProps {
   stories: VendorStories[];
@@ -26,7 +27,7 @@ export default function StoriesCarousel({ stories, onReaction }: StoriesCarousel
       }
 
       // Create new zuck instance
-      const zuckInstance = new (Zuck as any)(storiesRef.current, {
+      const zuckInstance = new Zuck(storiesRef.current, {
         skin: "snapgram",
         avatars: true,
         list: false,
@@ -65,7 +66,6 @@ export default function StoriesCarousel({ stories, onReaction }: StoriesCarousel
           },
           onOpen: (storyId: string, callback: () => void) => {
             console.log('Story opened:', storyId);
-            // Add reaction buttons when story opens
             setTimeout(() => {
               addReactionButtons(storyId);
             }, 100);
@@ -92,13 +92,11 @@ export default function StoriesCarousel({ stories, onReaction }: StoriesCarousel
     const modal = document.querySelector('.zuck-modal');
     if (!modal) return;
 
-    // Remove existing reaction buttons
     const existingReactions = modal.querySelector('.story-reactions');
     if (existingReactions) {
       existingReactions.remove();
     }
 
-    // Create reaction buttons
     const reactionsContainer = document.createElement('div');
     reactionsContainer.className = 'story-reactions';
     reactionsContainer.style.cssText = `
@@ -108,11 +106,12 @@ export default function StoriesCarousel({ stories, onReaction }: StoriesCarousel
       transform: translateX(-50%);
       display: flex;
       gap: 12px;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(10px);
       border-radius: 25px;
-      padding: 8px 16px;
+      padding: 10px 18px;
       z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     `;
 
     const emojis = ["❤️", "👍", "👎", "😮"];
@@ -121,30 +120,40 @@ export default function StoriesCarousel({ stories, onReaction }: StoriesCarousel
       const button = document.createElement('button');
       button.textContent = emoji;
       button.style.cssText = `
-        background: none;
-        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid transparent;
         font-size: 24px;
         cursor: pointer;
-        transition: transform 0.2s ease;
-        padding: 4px;
+        transition: all 0.3s ease;
+        padding: 8px;
         border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       `;
       
       button.addEventListener('mouseenter', () => {
         button.style.transform = 'scale(1.2)';
+        button.style.background = 'rgba(255, 255, 255, 0.2)';
+        button.style.borderColor = 'rgba(255, 255, 255, 0.3)';
       });
       
       button.addEventListener('mouseleave', () => {
         button.style.transform = 'scale(1)';
+        button.style.background = 'rgba(255, 255, 255, 0.1)';
+        button.style.borderColor = 'transparent';
       });
 
       button.addEventListener('click', () => {
         handleReaction(currentStoryId, emoji);
-        // Add visual feedback
-        button.style.transform = 'scale(1.5)';
+        button.style.transform = 'scale(1.4)';
+        button.style.background = 'rgba(255, 255, 255, 0.3)';
         setTimeout(() => {
           button.style.transform = 'scale(1)';
-        }, 200);
+          button.style.background = 'rgba(255, 255, 255, 0.1)';
+        }, 300);
       });
 
       reactionsContainer.appendChild(button);
@@ -170,44 +179,16 @@ export default function StoriesCarousel({ stories, onReaction }: StoriesCarousel
   };
 
   if (!stories || stories.length === 0) {
-    return null;
+    return (
+      <div className="w-full mb-6 p-4 text-center text-muted-foreground">
+        <p>No stories available</p>
+      </div>
+    );
   }
 
   return (
     <div className="w-full mb-6">
-      <div ref={storiesRef} className="w-full overflow-hidden rounded-lg" />
-      <style>{`
-        .zuck-modal {
-          z-index: 9999 !important;
-        }
-        
-        .zuck-modal .story {
-          border-radius: 12px !important;
-        }
-        
-        .zuck-modal .story-viewer {
-          background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.6)) !important;
-        }
-        
-        .stories > .story .info .name {
-          color: white !important;
-          font-weight: 600 !important;
-        }
-        
-        .stories > .story {
-          border: 3px solid hsl(var(--primary)) !important;
-          border-radius: 50% !important;
-        }
-        
-        .stories > .story.seen {
-          border-color: hsl(var(--muted)) !important;
-        }
-        
-        .stories > .story:hover {
-          transform: scale(1.05) !important;
-          transition: transform 0.2s ease !important;
-        }
-      `}</style>
+      <div ref={storiesRef} className="stories-container" />
     </div>
   );
 }
