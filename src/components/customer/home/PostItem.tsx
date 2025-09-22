@@ -181,7 +181,7 @@ const PostItem: React.FC<PostItemProps> = ({
                       onClick={() => setIsImageExpanded(!isImageExpanded)}
                     >
                       <img
-                        src={image}
+                        src={image.startsWith('https://') ? image : `http://localhost:8000/storage/${image}`} // TODO: change to the actual domain
                         alt={`Post Image ${index + 1}`}
                         className="w-full h-full object-cover sm:rounded-lg border-0 sm:border"
                         loading="lazy"
@@ -238,7 +238,7 @@ const PostItem: React.FC<PostItemProps> = ({
         {/* Product Card with enhanced responsive design */}
         {post.product && (
           <Link to={`/product/${post.product.id}`} className="block">
-            <Card className="mb-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-primary group">
+            <Card className="mb-4 hover:shadow-md transition-all duration-200 group">{/*border-l-4 border-l-primary*/}
               <CardContent className="p-3 sm:p-4">
                 <div className="flex gap-3 sm:gap-4">
                   <div className="w-14 h-14 sm:w-20 sm:h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">

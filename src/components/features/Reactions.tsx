@@ -7,7 +7,7 @@ interface ReactionsProps {
   className?: string;
 }
 
-const emojis = ["❤️", "👍", "👎", "😮"];
+const emojis = ["❤️", "👍", "👎", "😮"] as const;
 
 export default function Reactions({ storyId, onReact, className = "" }: ReactionsProps) {
   const [reactionCounts, setReactionCounts] = useState<{[key: string]: number}>({

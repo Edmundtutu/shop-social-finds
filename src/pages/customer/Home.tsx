@@ -61,7 +61,7 @@ const Home: React.FC = () => {
               {user?.avatar ? (
                 <img
                   src={user.avatar}
-                  alt="User Avatar"
+                  alt="User"
                   className="w-12 h-12 rounded-full border-2 border-gray-200 object-cover"
                 />
               ) : (

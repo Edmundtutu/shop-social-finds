@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Zuck } from "zuck.js";
+import  {Zuck}  from "zuck.js";
+import "../../../node_modules/zuck.js/dist/zuck.min.css";
+import "../../../node_modules/zuck.js/dist/skins/snapgram.css";
 import { type VendorStories } from '@/data/demoStories';
 import { storyService } from '@/services/storyService';
 import { toast } from 'sonner';
@@ -56,22 +58,29 @@ export default function StoriesCarousel({ stories, onReaction }: StoriesCarousel
           onView: (storyId: string) => {
             console.log('Viewing story:', storyId);
           },
-          onEnd: (storyId: string, callback: () => void) => {
+          onEnd: (storyId: string, callback?: () => void) => {
             console.log('Story ended:', storyId);
-            callback();
+            if (typeof callback === "function") {
+              callback();
+            }
           },
-          onClose: (storyId: string, callback: () => void) => {
+          onClose: (storyId: string, callback?: () => void) => {
             console.log('Story closed:', storyId);
-            callback();
+            if (typeof callback === "function") {
+              callback();
+            }
           },
-          onOpen: (storyId: string, callback: () => void) => {
+          onOpen: (storyId: string, callback?: () => void) => {
             console.log('Story opened:', storyId);
             setTimeout(() => {
               addReactionButtons(storyId);
             }, 100);
-            callback();
+            if (typeof callback === "function") {
+              callback();
+            }
           }
         }
+        
       });
 
       zuckRef.current = zuckInstance;
