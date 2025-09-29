@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback, u
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Conversation, Message, SendMessagePayload } from '@/services/chatService';
-import { getConversation as apiGetConversation, getMessages as apiGetMessages, sendMessage as apiSendMessage, markAsRead as apiMarkRead, getShopConversations as apiGetShopConversations, getUserConversations as apiGetUserConversations, startTyping as apiStartTyping, stopTyping as apiStopTyping, updatePresence as apiUpdatePresence } from '@/services/chatService';
+import { getConversation as apiGetConversation, getMessages as apiGetMessages, sendMessage as apiSendMessage, markAsRead as apiMarkRead, getShopConversations as apiGetShopConversations, getUserConversations as apiGetUserConversations, startTyping as apiStartTyping, stopTyping as apiStopTyping } from '@/services/chatService';
 import { getEcho } from '@/services/realtime';
 
 interface ChatState {
@@ -12,7 +12,6 @@ interface ChatState {
   isLoading: boolean;
   error: string | null;
   typingUsers: { [conversationId: number]: { [userId: string]: { name: string; type: string } } };
-  onlineUsers: { [conversationId: number]: { [userId: string]: boolean } };
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
 }
 
@@ -25,7 +24,6 @@ interface ChatContextType extends ChatState {
   
   // Messaging
   sendMessage: (payload: SendMessagePayload) => Promise<void>;
-  addMessage: (message: Message) => void;
   
   // Real-time updates
   markAsRead: (conversationId: number) => Promise<void>;
@@ -34,14 +32,10 @@ interface ChatContextType extends ChatState {
   startTyping: (conversationId: number) => Promise<void>;
   stopTyping: (conversationId: number) => Promise<void>;
   
-  // Presence
-  updatePresence: (conversationId: number, status: 'online' | 'offline') => Promise<void>;
-  
   // Utilities
   getConversationById: (id: number) => Conversation | undefined;
   getUnreadCount: (conversationId: number) => number;
   getTypingUsers: (conversationId: number) => { name: string; type: string }[];
-  getOnlineUsers: (conversationId: number) => string[];
 }
 
 type ChatAction =
@@ -55,7 +49,6 @@ type ChatAction =
   | { type: 'MARK_MESSAGES_READ'; payload: { conversationId: number; senderType: string } }
   | { type: 'SET_TYPING_USER'; payload: { conversationId: number; userId: string; name: string; type: string } }
   | { type: 'REMOVE_TYPING_USER'; payload: { conversationId: number; userId: string } }
-  | { type: 'SET_USER_PRESENCE'; payload: { conversationId: number; userId: string; status: boolean } }
   | { type: 'SET_CONNECTION_STATUS'; payload: 'connecting' | 'connected' | 'disconnected' | 'error' };
 
 const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
@@ -65,7 +58,6 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
     case 'SET_ERROR':
       return { ...state, error: action.payload };
     case 'SET_CONVERSATIONS':
-      // Ensure conversations is always an array
       return { ...state, conversations: action.payload ?? [] };
     case 'SET_ACTIVE_CONVERSATION':
       return { ...state, activeConversation: action.payload, messages: action.payload ? state.messages : [] };
@@ -74,7 +66,6 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
     case 'ADD_MESSAGE':
       return { ...state, messages: [...state.messages, action.payload] };
     case 'UPDATE_CONVERSATION_LAST_MESSAGE':
-      // Guard against undefined conversations
       return {
         ...state,
         conversations: (state.conversations || []).map(conv =>
@@ -117,17 +108,6 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
           [action.payload.conversationId]: remainingTyping,
         },
       };
-    case 'SET_USER_PRESENCE':
-      return {
-        ...state,
-        onlineUsers: {
-          ...state.onlineUsers,
-          [action.payload.conversationId]: {
-            ...state.onlineUsers[action.payload.conversationId],
-            [action.payload.userId]: action.payload.status,
-          },
-        },
-      };
     case 'SET_CONNECTION_STATUS':
       return { ...state, connectionStatus: action.payload };
     default:
@@ -155,7 +135,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading: false,
     error: null,
     typingUsers: {},
-    onlineUsers: {},
     connectionStatus: 'disconnected',
   });
 
@@ -167,38 +146,36 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     stateRef.current = state;
   }, [state]);
 
-  // Subscribe to Echo channel for a conversation
+  // Subscribe to Echo channel for a conversation - CORE REAL-TIME FUNCTIONALITY
   const subscribeToConversation = useCallback((conversationId: number) => {
-    console.log('🔌 subscribeToConversation called with conversationId:', conversationId);
+    console.log('🔌 Subscribing to conversation:', conversationId);
+    
     try {
       dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' });
-      console.log('🔧 Getting Echo instance...');
-      const echo = getEcho();
-      console.log('🔌 Echo instance obtained:', !!echo);
-      console.log('🔌 Subscribing to conversation channel:', conversationId);
       
-      // Unsubscribe previous
+      const echo = getEcho();
+      
+      // Unsubscribe from previous channel
       if (currentChannelRef.current) {
         try {
           currentChannelRef.current.stopListening('.message.sent');
           currentChannelRef.current.stopListening('.typing.started');
           currentChannelRef.current.stopListening('.typing.stopped');
-          currentChannelRef.current.stopListening('.presence.changed');
           echo.leave(`conversation.${currentChannelRef.current.conversationId}`);
-          console.log('🔌 Unsubscribed from previous channel:', currentChannelRef.current.conversationId);
+          console.log('🔌 Unsubscribed from previous channel');
         } catch (error) {
           console.warn('Error unsubscribing from previous channel:', error);
         }
       }
       
       const channel = echo.private(`conversation.${conversationId}`);
-      channel.conversationId = conversationId; // Store for cleanup
+      channel.conversationId = conversationId;
       
-      // Listen for messages
+      // Listen for new messages - THIS IS THE CORE REAL-TIME FUNCTIONALITY
       channel.listen('.message.sent', (event: any) => {
-        console.log('📨 Received real-time message:', event);
+        console.log('📨 REAL-TIME MESSAGE RECEIVED:', event);
         
-        const incoming: Message = {
+        const incomingMessage: Message = {
           id: event.id,
           conversation_id: event.conversation_id,
           sender_id: event.sender_id,
@@ -207,20 +184,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           message_type: event.message_type,
           media_url: event.media_url,
           created_at: event.created_at,
-          updated_at: event.created_at,
+          updated_at: event.updated_at || event.created_at,
           read_at: event.read_at,
         };
         
-        // Check if message already exists to prevent duplicates
-        const existingMessage = stateRef.current.messages.find(msg => msg.id === incoming.id);
+        // Only add if it's for the current conversation and doesn't already exist
+        if (incomingMessage.conversation_id === conversationId) {
+          const existingMessage = stateRef.current.messages.find(msg => msg.id === incomingMessage.id);
         if (!existingMessage) {
-          dispatch({ type: 'ADD_MESSAGE', payload: incoming });
-          dispatch({ type: 'UPDATE_CONVERSATION_LAST_MESSAGE', payload: { conversationId, message: incoming } });
-          
-          // Play notification sound for received messages (not own messages)
-          if (incoming.sender_id !== user?.id && 'Notification' in window) {
-            // You can add notification logic here
-            console.log('🔔 New message from:', incoming.sender_type);
+            console.log('✅ Adding new message to state:', incomingMessage.id);
+            dispatch({ type: 'ADD_MESSAGE', payload: incomingMessage });
+            dispatch({ type: 'UPDATE_CONVERSATION_LAST_MESSAGE', payload: { conversationId, message: incomingMessage } });
           }
         }
       });
@@ -251,33 +225,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       });
-
-      // Listen for presence changes
-      channel.listen('.presence.changed', (event: any) => {
-        if (event.user_id !== user?.id) {
-          dispatch({
-            type: 'SET_USER_PRESENCE',
-            payload: {
-              conversationId,
-              userId: event.user_id,
-              status: event.status === 'online',
-            },
-          });
-        }
-      });
       
       currentChannelRef.current = channel;
       dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' });
       console.log('✅ Successfully subscribed to conversation channel:', conversationId);
       
-    } catch (e) {
-      console.error('❌ Echo subscription failed:', e);
+    } catch (error) {
+      console.error('❌ Echo subscription failed:', error);
       dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' });
       dispatch({ type: 'SET_ERROR', payload: 'Real-time connection failed' });
     }
   }, [user]);
 
-  // Load conversations
+  // Load conversations - ONLY called when explicitly needed
   const loadConversations = useCallback(async () => {
     if (!user) return;
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -295,23 +255,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Ensure a conversation exists for an order and return it
   const ensureConversationForOrder = useCallback(async (orderId: string) => {
-    console.log('🔍 ensureConversationForOrder called with orderId:', orderId);
-    console.log('🔧 apiGetConversation function:', typeof apiGetConversation);
-    
     try {
-      console.log('📡 Calling apiGetConversation...');
       const resp = await apiGetConversation({ order_id: orderId });
-      console.log('💬 Conversation API response:', resp);
       return resp;
     } catch (error) {
       console.error('❌ Failed to get/create conversation:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        response: error.response?.data,
-        status: error.response?.status
-      });
       throw error;
     }
   }, []);
@@ -332,39 +280,31 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Send a message
   const sendMessage = useCallback(async (payload: SendMessagePayload): Promise<void> => {
-    console.log('🎯 ChatContext sendMessage called with payload:', payload);
-    console.log('🔧 apiSendMessage function:', typeof apiSendMessage);
-    
     try {
-      console.log('📡 Calling apiSendMessage...');
+      console.log('📤 Sending message:', payload);
       const sent = await apiSendMessage(payload);
-      console.log('📨 API response received:', sent);
-      // Rely solely on real-time broadcast to add the message to state
-      // This prevents any chance of duplicates/flicker
-      console.log('✅ Message sent successfully (awaiting real-time echo):', sent.id);
+      console.log('✅ Message sent successfully:', sent.id);
+      
+      // Optimistically add the message to state immediately
+      const optimisticMessage: Message = {
+        ...sent,
+        updated_at: sent.created_at,
+        read_at: undefined,
+      };
+      
+      dispatch({ type: 'ADD_MESSAGE', payload: optimisticMessage });
+      dispatch({ type: 'UPDATE_CONVERSATION_LAST_MESSAGE', payload: { conversationId: payload.conversation_id, message: optimisticMessage } });
+      
     } catch (error) {
       console.error('❌ Failed to send message:', error);
-      console.error('❌ Error details:', {
-        message: (error as any).message,
-        stack: (error as any).stack,
-        name: (error as any).name,
-        response: (error as any).response?.data,
-        status: (error as any).response?.status
-      });
-      
       toast({
         title: 'Failed to send message',
         description: 'There was an error sending your message. Please try again.',
         variant: 'destructive',
       });
-      throw error; // Re-throw to allow UI to handle the error
+      throw error;
     }
   }, [toast]);
-
-  const addMessage = useCallback((message: Message) => {
-    dispatch({ type: 'ADD_MESSAGE', payload: message });
-    dispatch({ type: 'UPDATE_CONVERSATION_LAST_MESSAGE', payload: { conversationId: message.conversation_id, message } });
-  }, []);
 
   const markAsRead = useCallback(async (conversationId: number) => {
     try {
@@ -372,7 +312,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const senderType = 'user';
       dispatch({ type: 'MARK_MESSAGES_READ', payload: { conversationId, senderType } });
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to mark messages as read:', error);
     }
   }, []);
@@ -393,22 +332,18 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.conversations]);
 
   const getUnreadCount = useCallback((conversationId: number) => {
-    // Prefer server-provided unread count if available
     const conversation = state.conversations.find(conv => conv.id === conversationId) as any;
     if (!conversation) return 0;
 
-    // If we have messages loaded for this conversation, count unread locally
     const conversationMessages = state.messages.filter(msg => msg.conversation_id === conversationId);
     if (conversationMessages.length > 0) {
       return conversationMessages.filter(msg => !msg.read_at && msg.sender_id !== user?.id).length;
     }
 
-    // Server-provided unread_count support
     if (typeof conversation.unread_count === 'number') {
       return conversation.unread_count;
     }
 
-    // Fallback heuristic using latest_message if available
     const latest = conversation.latest_message;
     if (latest && !latest.read_at && latest.sender_id !== user?.id) {
       return 1;
@@ -421,7 +356,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await apiStartTyping(conversationId);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to start typing:', error);
     }
   }, []);
@@ -430,17 +364,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await apiStopTyping(conversationId);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to stop typing:', error);
-    }
-  }, []);
-
-  const updatePresence = useCallback(async (conversationId: number, status: 'online' | 'offline') => {
-    try {
-      await apiUpdatePresence(conversationId, status);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to update presence:', error);
     }
   }, []);
 
@@ -449,12 +373,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return Object.values(typing);
   }, [state.typingUsers]);
 
-  const getOnlineUsers = useCallback((conversationId: number) => {
-    const online = state.onlineUsers[conversationId] || {};
-    return Object.keys(online).filter(userId => online[userId]);
-  }, [state.onlineUsers]);
-
-  // Load conversations when user changes/login and cleanup on unmount
+  // ONLY load conversations when user changes - NO AUTOMATIC POLLING
   useEffect(() => {
     if (user) {
       loadConversations();
@@ -468,7 +387,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           currentChannelRef.current.stopListening('.message.sent');
           currentChannelRef.current.stopListening('.typing.started');
           currentChannelRef.current.stopListening('.typing.stopped');
-          currentChannelRef.current.stopListening('.presence.changed');
           echo.leave(`conversation.${currentChannelRef.current.conversationId}`);
         } catch (error) {
           console.warn('Error during chat cleanup:', error);
@@ -476,22 +394,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentChannelRef.current = null;
       }
     };
-  }, [user, loadConversations]);
-
-  // Background polling to keep conversations (and unread badges) fresh
-  useEffect(() => {
-    if (!user) return;
-    const interval = window.setInterval(() => {
-      // Only poll when tab is visible to avoid unnecessary work
-      if (document.visibilityState === 'visible') {
-        loadConversations();
-      }
-    }, 15000); // every 15 seconds
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [user, loadConversations]);
+  }, [user]); // ONLY user dependency - NO loadConversations dependency
 
   return (
     <ChatContext.Provider
@@ -502,15 +405,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loadMessages,
         ensureConversationForOrder,
         sendMessage,
-        addMessage,
         markAsRead,
         startTyping,
         stopTyping,
-        updatePresence,
         getConversationById,
         getUnreadCount,
         getTypingUsers,
-        getOnlineUsers,
       }}
     >
       {children}

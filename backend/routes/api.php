@@ -102,6 +102,5 @@ Route::prefix('v1')->group(function () {
         Route::get('/chat/conversations/shop', [ChatController::class, 'getShopConversations']);
         Route::post('/chat/typing/start', [ChatController::class, 'startTyping']);
         Route::post('/chat/typing/stop', [ChatController::class, 'stopTyping']);
-        Route::post('/chat/presence', [ChatController::class, 'updatePresence']);
     });
 });

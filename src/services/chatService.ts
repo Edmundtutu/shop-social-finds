@@ -166,11 +166,3 @@ export const stopTyping = async (conversationId: number): Promise<{ message: str
   return response.data;
 };
 
-// Update user presence
-export const updatePresence = async (conversationId: number, status: 'online' | 'offline'): Promise<{ message: string }> => {
-  const response = await api.post<{ message: string }>(`${apiVersion}/chat/presence`, {
-    conversation_id: conversationId,
-    status,
-  });
-  return response.data;
-};

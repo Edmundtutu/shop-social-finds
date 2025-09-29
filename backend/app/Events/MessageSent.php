@@ -53,6 +53,16 @@ class MessageSent implements ShouldBroadcast
             'message_type' => $this->message->message_type,
             'media_url' => $this->message->media_url,
             'created_at' => $this->message->created_at,
+            'updated_at' => $this->message->updated_at,
+            'read_at' => $this->message->read_at,
         ];
+    }
+
+    /**
+     * Determine if this event should be queued.
+     */
+    public function shouldQueue(): bool
+    {
+        return false; // Broadcast immediately for real-time performance
     }
 }

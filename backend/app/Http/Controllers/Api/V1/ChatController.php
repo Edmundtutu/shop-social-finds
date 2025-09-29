@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Events\MessageSent;
 use App\Events\TypingStarted;
 use App\Events\TypingStopped;
-use App\Events\UserPresenceChanged;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\Message;
@@ -222,28 +221,4 @@ class ChatController extends Controller
         return response()->json(['message' => 'Typing stopped']);
     }
 
-    /**
-     * Update user presence
-     */
-    public function updatePresence(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'conversation_id' => 'required|integer|exists:conversations,id',
-            'status' => 'required|in:online,offline',
-        ]);
-
-        $conversation = Conversation::findOrFail($validated['conversation_id']);
-        
-        // Check if user can access this conversation
-        if (Auth::user()->id !== $conversation->user_id && !Auth::user()->shops->contains('id', $conversation->shop_id)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $userType = Auth::user()->shops->contains('id', $conversation->shop_id) ? 'shop' : 'user';
-
-        // Broadcast presence changed event
-        event(new UserPresenceChanged($conversation->id, Auth::user()->id, $userType, $validated['status']));
-
-        return response()->json(['message' => 'Presence updated']);
-    }
 }

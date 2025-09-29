@@ -27,7 +27,6 @@ export const ChatManager: React.FC = () => {
     startTyping = async () => {},
     stopTyping = async () => {},
     getTypingUsers = () => [],
-    getOnlineUsers = () => [],
     isLoading = false,
     activeConversation = null,
     setActiveConversation = () => {},
@@ -96,7 +95,7 @@ export const ChatManager: React.FC = () => {
         const isActive = activeConversation?.id === conversation.id;
         const chatMessages = isActive ? messages : [];
         const typingUsers = isActive ? getTypingUsers(conversation.id) : [];
-        const onlineUsers = isActive ? getOnlineUsers(conversation.id) : [];
+        // Online users removed - no longer needed
 
         return (
           <ResponsiveChatDialog
@@ -114,7 +113,6 @@ export const ChatManager: React.FC = () => {
             sendMessage={(content) => handleSendMessage(orderId, content)}
             isLoading={isLoading}
             typingUsers={typingUsers}
-            onlineUsers={onlineUsers}
             startTyping={() => startTyping(conversation.id)}
             stopTyping={() => stopTyping(conversation.id)}
           />

@@ -22,7 +22,6 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { ChatStatusIndicator } from './ChatStatusIndicator';
 import { QuickChatActions } from './QuickChatActions';
 import { cn } from '@/lib/utils';
 import type { Order } from '@/types/orders';
@@ -45,7 +44,6 @@ interface ResponsiveChatDialogProps {
   sendMessage: (content: string) => Promise<void>;
   isLoading?: boolean;
   typingUsers: any[];
-  onlineUsers: string[];
   startTyping: () => void;
   stopTyping: () => void;
 }
@@ -64,7 +62,6 @@ export const ResponsiveChatDialog: React.FC<ResponsiveChatDialogProps> = ({
   sendMessage,
   isLoading = false,
   typingUsers,
-  onlineUsers,
   startTyping,
   stopTyping,
 }) => {
@@ -168,10 +165,6 @@ export const ResponsiveChatDialog: React.FC<ResponsiveChatDialogProps> = ({
                   </>
                 )}
               </div>
-              <ChatStatusIndicator 
-                status={onlineUsers.length > 0 ? 'online' : 'offline'}
-                className="ml-auto"
-              />
             </div>
 
             {/* Messages Area */}
@@ -318,10 +311,6 @@ export const ResponsiveChatDialog: React.FC<ResponsiveChatDialogProps> = ({
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <ChatStatusIndicator 
-              status={onlineUsers.length > 0 ? 'online' : 'offline'}
-              className="text-xs"
-            />
             {onMinimize && (
               <Button
                 variant="ghost"
@@ -454,10 +443,6 @@ export const ResponsiveChatDialog: React.FC<ResponsiveChatDialogProps> = ({
                 </>
               )}
             </div>
-            <ChatStatusIndicator 
-              status={onlineUsers.length > 0 ? 'online' : 'offline'}
-              className="ml-auto"
-            />
           </DialogTitle>
         </DialogHeader>
 

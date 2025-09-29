@@ -9,7 +9,6 @@ import { MessageCircle, Clock, User, Store, AlertTriangle, Package } from 'lucid
 import { useChat } from '@/context/ChatContext';
 import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ChatStatusIndicator } from './ChatStatusIndicator';
 import { useResponsiveChat } from '@/hooks/useResponsiveChat';
 import { useMultiChat } from '@/context/MultiChatContext';
 import type { Conversation } from '@/services/chatService';
@@ -33,7 +32,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   let conversations: Conversation[] = [];
   let getUnreadCount = (id: number) => 0;
   let getTypingUsers: (conversationId: number) => { name: string; type: string }[] = () => [];
-  let getOnlineUsers: (conversationId: number) => string[] = () => [];
   let isLoading = false;
   let chatError: string | null = null;
 
@@ -42,7 +40,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({
     conversations = chatContext.conversations || [];
     getUnreadCount = chatContext.getUnreadCount || (() => 0);
     getTypingUsers = chatContext.getTypingUsers || (() => []);
-    getOnlineUsers = chatContext.getOnlineUsers || (() => []);
     isLoading = chatContext.isLoading || false;
   } catch (error) {
     console.warn('Chat context not available in ConversationList:', error);
@@ -167,7 +164,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                   const title = getConversationTitle(conversation);
                   const subtitle = getConversationSubtitle(conversation);
                   const time = conversation.last_message_at ? formatTime(conversation.last_message_at) : '';
-                const online = getOnlineUsers(conversation.id);
 
                   return (
                     <Button
@@ -200,11 +196,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                           <div className="flex items-center gap-2 text-xs text-muted-foreground truncate mb-1">
                             <Package className="h-3 w-3" />
                             <span>Order #{conversation.order_id}</span>
-                            <ChatStatusIndicator 
-                              status="offline" 
-                              lastSeen={conversation.last_message_at}
-                              className="ml-auto"
-                            />
                           </div>
                           <div className="text-sm text-muted-foreground truncate">
                             {subtitle}
@@ -274,7 +265,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                 const title = getConversationTitle(conversation);
                 const subtitle = getConversationSubtitle(conversation);
                 const time = conversation.last_message_at ? formatTime(conversation.last_message_at) : '';
-                const online = getOnlineUsers(conversation.id);
 
                 return (
                   <Button
@@ -307,11 +297,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                         <div className="flex items-center gap-2 text-xs text-muted-foreground truncate mb-1">
                           <Package className="h-3 w-3" />
                           <span>Order #{conversation.order_id}</span>
-                          <ChatStatusIndicator
-                            status={online.length > 0 ? 'online' : 'offline'}
-                            lastSeen={conversation.last_message_at}
-                            className="ml-auto"
-                          />
                         </div>
                         <div className="text-sm text-muted-foreground truncate">
                           {subtitle}

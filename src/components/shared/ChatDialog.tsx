@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Send, Image, Mic, Paperclip, Circle, AlertTriangle, Package, Store, User } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { useAuth } from '@/context/AuthContext';
-import { ChatStatusIndicator } from './ChatStatusIndicator';
 import { QuickChatActions } from './QuickChatActions';
 import type { Order } from '@/types/orders';
 
@@ -42,9 +41,7 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
     isLoading = false,
     startTyping = async () => {},
     stopTyping = async () => {},
-    updatePresence = async () => {},
     getTypingUsers = () => [],
-    getOnlineUsers = () => []
   } = chatContext;
   
   const [messageText, setMessageText] = useState('');
@@ -81,7 +78,7 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
         // Set user as online when opening chat
         if (conversation) {
           console.log('🟢 Setting user presence to online for conversation:', conversation.id);
-          updatePresence(conversation.id, 'online');
+          // Presence updates removed
         } else {
           console.log('⚠️ No conversation returned from ensureConversationForOrder');
         }
@@ -95,14 +92,14 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
       }
     };
     init();
-  }, [isOpen, order?.id, ensureConversationForOrder, setActiveConversation, updatePresence]);
+  }, [isOpen, order?.id, ensureConversationForOrder, setActiveConversation]);
 
   // Set user as offline when closing chat
   useEffect(() => {
     if (!isOpen && activeConversation) {
-      updatePresence(activeConversation.id, 'offline');
+      // Presence updates removed
     }
-  }, [isOpen, activeConversation, updatePresence]);
+  }, [isOpen, activeConversation]);
 
   const handleSendMessage = async () => {
     console.log('🚀 handleSendMessage called');
@@ -187,7 +184,7 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
 
   // Get typing users and online users for current conversation
   const typingUsers = activeConversation ? getTypingUsers(activeConversation.id) : [];
-  const onlineUsers = activeConversation ? getOnlineUsers(activeConversation.id) : [];
+  // Online users removed - no longer needed
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { 
@@ -222,10 +219,6 @@ export const ChatDialog: React.FC<ChatDialogProps> = ({ order, isOpen, onClose }
                 </>
               )}
             </div>
-            <ChatStatusIndicator 
-              status={onlineUsers.length > 0 ? 'online' : 'offline'}
-              className="ml-auto"
-            />
           </DialogTitle>
           <DialogDescription className="flex items-center justify-between">
             <span>

@@ -40,6 +40,10 @@ export function getEcho(): Echo<any> {
       auth: {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       },
+      // Performance optimizations
+      cluster: undefined, // Disable cluster for direct connection
+      disableStats: true, // Disable stats collection
+      enableLogging: false, // Disable verbose logging
     });
 
     // Add connection event listeners for debugging

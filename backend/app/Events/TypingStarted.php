@@ -63,4 +63,12 @@ class TypingStarted implements ShouldBroadcast
             'user_name' => $this->userName,
         ];
     }
+
+    /**
+     * Determine if this event should be queued.
+     */
+    public function shouldQueue(): bool
+    {
+        return false; // Broadcast immediately for real-time performance
+    }
 }
