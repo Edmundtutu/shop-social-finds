@@ -85,7 +85,6 @@ export const DockedConversationList: React.FC<DockedConversationListProps> = ({
         delivery_address: '',
         delivery_lat: 0,
         delivery_lng: 0,
-        phone_number: '',
         notes: '',
         status: 'pending' as const,
         created_at: conversation.created_at,

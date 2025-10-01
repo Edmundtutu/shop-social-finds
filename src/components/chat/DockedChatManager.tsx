@@ -12,19 +12,13 @@ export const DockedChatManager: React.FC = () => {
   
   // Memoize chats to render to prevent unnecessary re-renders
   const chatsToRender = useMemo(() => {
-    const chats = Array.from(openChats.values());
-    console.log('🔄 DockedChatManager: Recalculating chats to render, count:', chats.length);
-    return chats;
+    return Array.from(openChats.values());
   }, [openChats]);
   
   // Early return for mobile to prevent any processing
   if (chatLayout === 'mobile') {
     return null;
   }
-  
-  console.log('🖥️ DockedChatManager: Desktop layout, rendering');
-  console.log('🎯 Active conversation:', activeConversation);
-  console.log('📊 Chats to render count:', chatsToRender.length);
 
   const handleChatAction = async (orderId: string, action: 'open' | 'close' | 'minimize' | 'maximize') => {
     const chat = openChats.get(orderId);
@@ -55,11 +49,8 @@ export const DockedChatManager: React.FC = () => {
   };
 
   if (chatsToRender.length === 0) {
-    console.log('❌ DockedChatManager: No chats to render, returning null');
     return null;
   }
-
-  console.log('🎨 DockedChatManager: Rendering chat windows');
   
   return (
     <>
@@ -67,20 +58,11 @@ export const DockedChatManager: React.FC = () => {
         const orderId = String(order.id);
         const isActive = activeConversation?.id === conversation.id;
         
-        console.log(`🔍 Processing chat for order ${orderId}:`);
-        console.log('  - Conversation ID:', conversation.id);
-        console.log('  - Active conversation ID:', activeConversation?.id);
-        console.log('  - Is active:', isActive);
-        console.log('  - Is minimized:', isMinimized);
-        console.log('  - Position:', position);
-        
         // Only render the chat window if it's the active conversation
         if (!isActive) {
-          console.log(`⏭️ Skipping chat for order ${orderId} - not active conversation`);
           return null;
         }
 
-        console.log(`✅ Rendering DockedChatWindow for order ${orderId}`);
         return (
           <DockedChatWindow
             key={orderId}
