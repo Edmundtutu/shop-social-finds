@@ -29,6 +29,10 @@ import VendorOrders from '@/pages/vendor/Orders';
 import VendorAnalytics from '@/pages/vendor/Analytics';
 import VendorProfile from '@/pages/vendor/Profile';
 
+// Chat Pages
+import { ConversationListPage } from '@/pages/chat/ConversationListPage';
+import { ChatPage } from '@/pages/chat/ChatPage';
+
 // Route Guards
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -135,6 +139,17 @@ const AppRoutes: React.FC = () => {
         </ProtectedRoute>
       } />
 
+      {/* Chat Routes - Available to both customers and vendors */}
+      <Route path="/chat/conversations" element={
+        <ProtectedRoute requiredRole={['customer', 'vendor']} layout="main">
+          <ConversationListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/chat/conversation/:orderId" element={
+        <ProtectedRoute requiredRole={['customer', 'vendor']} layout="main">
+          <ChatPage />
+        </ProtectedRoute>
+      } />
 
       {/* Vendor Routes */}
       <Route path="/vendor/dashboard" element={

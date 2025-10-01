@@ -7,8 +7,8 @@ import {ChatProvider} from "@/context/ChatContext.tsx";
 import { MultiChatProvider } from '@/context/MultiChatContext';
 import { FavoritesProvider } from '../context/FavoritesContext';
 import { Toaster } from '../components/ui/toaster';
-import { ChatLauncher } from '@/components/shared/ChatLauncher';
-import { ChatManager } from '@/components/shared/ChatManager';
+import { DesktopChatLauncher } from '@/components/chat/DesktopChatLauncher';
+import { DockedChatManager } from '@/components/chat/DockedChatManager';
 import ErrorBoundary from '../components/ErrorBoundary';
 import AppRoutes from '../routes/AppRoutes';
 import '../styles/index.css';
@@ -35,8 +35,8 @@ function App() {
                     <Router>
                       <div className="App min-h-screen bg-background">
                         <AppRoutes />
-                        <ChatLauncher />
-                        <ChatManager />
+                        <DesktopChatLauncher />
+                        <DockedChatManager />
                         <Toaster />
                       </div>
                     </Router>

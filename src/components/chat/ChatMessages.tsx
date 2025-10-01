@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Circle } from 'lucide-react';
 import type { Message } from '@/services/chatService';
@@ -21,12 +21,12 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = useCallback((timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
-  };
+  }, []);
 
   const isOwnMessage = (message: Message) => {
     return message.sender_id === currentUserId;

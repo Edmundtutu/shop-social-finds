@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Order } from '@/types/orders';
@@ -16,8 +16,11 @@ import CreatePostCard from '@/components/customer/profile/orders/CreatePostCard'
 import { useImageCapture } from '@/hooks/useImageCapture';
 import CameraCapture from '@/components/features/CameraCapture';
 import { useToast } from '@/hooks/use-toast';
-import { ChatDialog } from './ChatDialog';
 import { useChat } from '@/context/ChatContext';
+import { useAuth } from '@/context/AuthContext';
+import { useMultiChat } from '@/context/MultiChatContext';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
+import { useChatLayout } from '@/hooks/useChatLayout';
 
 type OrderCardContext = 'customer' | 'vendor';
 
@@ -58,15 +61,93 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [isActionInProgress, setIsActionInProgress] = useState(false);
   const [hasActionCompleted, setHasActionCompleted] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const imageCapture = useImageCapture();
   const { toast } = useToast();
-  const { getUnreadCount } = useChat();
+  const { user } = useAuth();
+  const { conversations, ensureConversationForOrder, loadConversations, setActiveConversation } = useChat();
+  const { openChat } = useMultiChat();
+  const chatLayout = useChatLayout();
+  
+  // Find conversation for this order to get unread count
+  const conversation = conversations.find(conv => conv.order_id === String(order.id));
+  const { conversationUnreadCount } = useUnreadCount(conversation?.id);
+  
+  // Debug layout changes
+  useEffect(() => {
+    console.log('🔄 OrderCard layout changed to:', chatLayout, 'for order:', order.id);
+  }, [chatLayout, order.id]);
   const createdAt = new Date(order.created_at);
   const deliveryType = order.delivery_address && order.delivery_address !== 'N/A for pickup' ? 'Delivery' : 'Pickup';
 
   // Check if order is in a state that allows confirm/reject actions
   const canPerformActions = order.status === 'pending';
+
+  // Handle chat button click with proper behavior for vendor vs customer
+  const handleChatClick = async () => {
+    console.log('🖱️ OrderCard chat button clicked');
+    console.log('👤 User role:', user?.role);
+    console.log('📱 Chat layout:', chatLayout);
+    console.log('📦 Order ID:', order.id);
+    console.log('💬 Existing conversation:', conversation);
+    
+    try {
+      if (user?.role === 'vendor') {
+        console.log('🏪 Vendor flow initiated');
+        
+        if (chatLayout === 'mobile') {
+          console.log('📱 Mobile: Navigating to chat page');
+          // Check if we're already on the chat page to prevent unnecessary navigation
+          const currentPath = window.location.pathname;
+          const targetPath = `/chat/conversation/${order.id}`;
+          
+          if (currentPath !== targetPath) {
+            console.log('🔄 Navigating from', currentPath, 'to', targetPath);
+            window.location.href = targetPath;
+          } else {
+            console.log('📍 Already on chat page, no navigation needed');
+          }
+        } else {
+          console.log('🖥️ Desktop: Opening docked chat window');
+          
+          if (conversation) {
+            console.log('✅ Using existing conversation:', conversation);
+            // CRITICAL: Set the conversation as active so DockedChatManager can render it
+            setActiveConversation(conversation);
+            console.log('🎯 Active conversation set (existing):', conversation);
+            openChat(conversation, order);
+          } else {
+            console.log('🔄 No existing conversation, creating/loading one...');
+            
+            // Ensure conversation exists and refresh conversations list
+            const conv = await ensureConversationForOrder(String(order.id));
+            console.log('📞 ensureConversationForOrder result:', conv);
+            
+            if (conv) {
+              console.log('🔄 Refreshing conversations list...');
+              await loadConversations();
+              console.log('✅ Conversations refreshed, setting active conversation...');
+              
+              // CRITICAL: Set the conversation as active so DockedChatManager can render it
+              setActiveConversation(conv);
+              console.log('🎯 Active conversation set:', conv);
+              
+              console.log('✅ Opening chat...');
+              openChat(conv, order);
+            } else {
+              console.error('❌ No conversation returned from ensureConversationForOrder');
+            }
+          }
+        }
+      } else {
+        console.log('👤 Customer flow: Going to conversation list');
+        window.location.href = '/chat/conversations';
+      }
+    } catch (error) {
+      console.error('❌ Failed to open chat:', error);
+      // Fallback to conversation list
+      window.location.href = '/chat/conversations';
+    }
+  };
   
   // Check if order has completed an action (confirmed/rejected)
   const hasCompletedAction = order.status === 'processing' || order.status === 'cancelled';
@@ -277,26 +358,23 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                     </>
                   )}
 
-                  {/* Chat button - always visible for vendor context */}
+                  {/* Chat button - behavior depends on user role */}
                   <button
                       type="button"
-                      onClick={() => setIsChatOpen(true)}
+                      onClick={handleChatClick}
                       className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-2 rounded-md border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors min-w-0 relative"
-                      title="Open conversation"
+                      title={user?.role === 'vendor' ? "Open chat for this order" : "View conversations"}
                   >
                     <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="hidden sm:inline truncate">Chat</span>
-                    {/* Unread message badge */}
-                    {(() => {
-                      // We need to get the conversation ID for this order to check unread count
-                      // For now, we'll show a placeholder - this would need to be connected to the actual conversation
-                      const unreadCount = 0; // getUnreadCount(conversationId);
-                      return unreadCount > 0 ? (
-                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center">
-                          {unreadCount > 9 ? '9+' : unreadCount}
-                        </Badge>
-                      ) : null;
-                    })()}
+                    {conversationUnreadCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center"
+                      >
+                        {conversationUnreadCount > 9 ? '9+' : conversationUnreadCount}
+                      </Badge>
+                    )}
                   </button>
                 </div>
             )}
@@ -313,14 +391,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </CardContent>
 
-        {/* Chat Dialog */}
-        {context === 'vendor' && (
-          <ChatDialog
-            order={order}
-            isOpen={isChatOpen}
-            onClose={() => setIsChatOpen(false)}
-          />
-        )}
+        {/* Chat Dialog removed - will be re-implemented with new system */}
       </Card>
   );
 };

@@ -13,12 +13,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { useChat } from '@/context/ChatContext';
 import { Badge } from '@/components/ui/badge';
-import { ConversationList } from '@/components/shared/ConversationList';
-import { ChatDialog } from '@/components/shared/ChatDialog';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import type { Conversation } from '@/services/chatService';
 
 interface NavItem {
   name: string;
@@ -32,46 +29,18 @@ const MobileBottomNav: React.FC = () => {
   const { user } = useAuth();
   const { getItemCount } = useCart();
   const location = useLocation();
-  const [conversationListOpen, setConversationListOpen] = useState(false);
-  const [chatDialogOpen, setChatDialogOpen] = useState(false);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  // Chat functionality removed - will be re-implemented with new system
 
   if (!user) return null;
 
   const cartItemCount = getItemCount();
-
-  // Safely get chat context with fallback
-  let conversations: Conversation[] = [];
-  let getUnreadCount = (id: number) => 0;
-  
-  try {
-    const chatContext = useChat();
-    conversations = chatContext.conversations || [];
-    getUnreadCount = chatContext.getUnreadCount || (() => 0);
-  } catch (error) {
-    // Chat context not available, use fallback values
-    console.warn('Chat context not available:', error);
-  }
-
-  const totalUnreadMessages = conversations.reduce((total, conversation) => {
-    return total + getUnreadCount(conversation.id);
-  }, 0);
-
-  const handleConversationSelect = (conversation: Conversation) => {
-    setSelectedConversation(conversation);
-    setChatDialogOpen(true);
-  };
-
-  const handleChatDialogClose = () => {
-    setChatDialogOpen(false);
-    setSelectedConversation(null);
-  };
+  const { totalUnreadCount } = useUnreadCount();
 
   const customerNavItems: NavItem[] = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Discover', href: '/discover', icon: Search },
     { name: 'Map', href: '/map', icon: MapPin },
-    { name: 'Chat', icon: MessageCircle, badge: totalUnreadMessages, onClick: () => setConversationListOpen(true) },
+    { name: 'Chat', icon: MessageCircle, badge: totalUnreadCount, onClick: () => window.location.href = '/chat/conversations' },
     { name: 'Profile', href: '/profile', icon: User },
   ];
 
@@ -79,7 +48,7 @@ const MobileBottomNav: React.FC = () => {
     { name: 'Dashboard', href: '/vendor/dashboard', icon: BarChart3 },
     { name: 'Inventory', href: '/vendor/Inventory', icon: Package },
     { name: 'Orders', href: '/vendor/orders', icon: ShoppingCart },
-    { name: 'Chat', icon: MessageCircle, badge: totalUnreadMessages, onClick: () => setConversationListOpen(true) },
+    { name: 'Chat', icon: MessageCircle, badge: totalUnreadCount, onClick: () => window.location.href = '/chat/conversations' },
     { name: 'Profile', href: '/vendor/profile', icon: Store },
   ];
 
@@ -150,27 +119,7 @@ const MobileBottomNav: React.FC = () => {
         })}
       </div>
 
-      {/* Conversation List Dialog */}
-      {conversationListOpen && (
-        <ErrorBoundary>
-          <ConversationList
-            isOpen={conversationListOpen}
-            onClose={() => setConversationListOpen(false)}
-            onSelectConversation={handleConversationSelect}
-          />
-        </ErrorBoundary>
-      )}
-
-      {/* Chat Dialog */}
-      {selectedConversation && chatDialogOpen && (
-        <ErrorBoundary>
-          <ChatDialog
-            order={selectedConversation.order}
-            isOpen={chatDialogOpen}
-            onClose={handleChatDialogClose}
-          />
-        </ErrorBoundary>
-      )}
+      {/* Chat functionality removed - will be re-implemented with new system */}
     </div>
   );
 };

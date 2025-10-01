@@ -1,6 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -8,21 +7,20 @@ import { Button } from '@/components/ui/button';
 import { MessageCircle, Clock, User, Store, Package } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { useAuth } from '@/context/AuthContext';
-import { useResponsiveChat } from '@/hooks/useResponsiveChat';
 import { useMultiChat } from '@/context/MultiChatContext';
 import type { Conversation } from '@/services/chatService';
+import type { Order } from '@/types/orders';
 
-interface OptimizedConversationListProps {
+interface DockedConversationListProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const OptimizedConversationList: React.FC<OptimizedConversationListProps> = ({
+export const DockedConversationList: React.FC<DockedConversationListProps> = ({
   isOpen,
   onClose
 }) => {
   const { user } = useAuth();
-  const chatMode = useResponsiveChat();
   const { openChat } = useMultiChat();
   
   const {
@@ -79,7 +77,7 @@ export const OptimizedConversationList: React.FC<OptimizedConversationListProps>
   const handleConversationClick = async (conversation: Conversation) => {
     try {
       // Create a mock order object from conversation data
-      const order = {
+      const order: Order = {
         id: parseInt(conversation.order_id),
         user_id: conversation.user_id,
         shop_id: conversation.shop_id,
@@ -184,34 +182,6 @@ export const OptimizedConversationList: React.FC<OptimizedConversationListProps>
       </div>
     );
   };
-
-  // Use Sheet for mobile, Dialog for desktop/tablet
-  if (chatMode === 'mobile') {
-    return (
-      <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="bottom" className="h-[80vh] flex flex-col">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              Conversations
-              {connectionStatus !== 'connected' && (
-                <Badge variant="outline" className="ml-auto">
-                  {connectionStatus}
-                </Badge>
-              )}
-            </SheetTitle>
-            <SheetDescription>
-              Select a conversation to start chatting
-            </SheetDescription>
-          </SheetHeader>
-
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            {renderContent()}
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
-    );
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
