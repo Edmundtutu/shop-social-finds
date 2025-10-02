@@ -85,7 +85,7 @@ class ChatController extends Controller
             return $message;
         });
 
-        $message->load('sender');
+        $message->load(['sender', 'conversation.shop']);
 
         // Broadcast the message
         event(new MessageSent($message));

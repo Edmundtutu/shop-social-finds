@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Broadcast;
 use App\Models\Shop;
 use App\Models\Conversation;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
@@ -24,4 +25,14 @@ Broadcast::channel('conversation.{conversationId}', function ($user, int $conver
     // Allow access if user is the customer or a shop owner of the conversation
     return $user->id === $conversation->user_id || 
            $user->shops->contains('id', $conversation->shop_id);
+});
+
+// Authorize users to listen to their own user channel for global notifications
+Broadcast::channel('user.{userId}', function ($user, string $userId) {
+    Log::info('🔐 User channel authorization', [
+        'requesting_user' => $user->id,
+        'channel_user' => $userId,
+        'authorized' => $user->id === $userId
+    ]);
+    return $user->id === $userId;
 });
