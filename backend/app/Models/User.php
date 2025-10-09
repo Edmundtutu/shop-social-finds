@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Models\Follow;
@@ -75,6 +76,25 @@ class User extends Authenticatable
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function subaccount(): HasOne
+    {
+        return $this->hasOne(Subaccount::class);
+    }
+
+    public function getSubaccountRelationAttribute()
+    {
+        if ($this->role === 'vendor') {
+            return $this->subaccount;
+        }
+
+        return null;
     }
 
     public function reviews(): HasMany

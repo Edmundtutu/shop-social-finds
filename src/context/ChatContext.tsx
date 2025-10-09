@@ -278,6 +278,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       channel.conversationId = conversationId;
       
       // Listen for new messages in active conversation (backup for user channel)
+      // Add this in your ChatContext.tsx after line 280:
+      channel.listen('.test.message', (event: any) => {
+        console.log('🧪 TEST MESSAGE RECEIVED:', event);
+      });
+
+      // Also try without the dot:
+      channel.listen
       channel.listen('message.sent', (event: any) => {
         console.log('📨 CONVERSATION MESSAGE RECEIVED:', event);
         

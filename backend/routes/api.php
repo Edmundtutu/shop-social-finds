@@ -1,22 +1,29 @@
 <?php
 
-use App\Http\Controllers\Api\V1\PostHandlers\CommentController;
-use App\Http\Controllers\Api\V1\PostHandlers\CommentLikeController;
+use App\Models\User;
+use App\Models\Order;
+use App\Models\Subaccount;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use App\Services\FlutterwaveService;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\PostHandlers\LikeController;
-use App\Http\Controllers\Api\V1\PostHandlers\PostCommentController;
-use App\Http\Controllers\Api\V1\UserHandlers\AuthController;
 use App\Http\Controllers\Api\V1\PostHandlers\PostController;
+use App\Http\Controllers\Api\V1\ShopHandlers\ShopController;
+use App\Http\Controllers\Api\V1\UserHandlers\AuthController;
 use App\Http\Controllers\Api\V1\OrderHandlers\OrderController;
+use App\Http\Controllers\Api\V1\ShopHandlers\ReviewController;
+use App\Http\Controllers\Api\V1\UserHandlers\FollowController;
+use App\Http\Controllers\Api\V1\PostHandlers\CommentController;
+use App\Http\Controllers\Api\V1\OrderHandlers\PaymentController;
 use App\Http\Controllers\Api\V1\OrderHandlers\ProductController;
+use App\Http\Controllers\Api\V1\PostHandlers\CommentLikeController;
+use App\Http\Controllers\Api\V1\PostHandlers\PostCommentController;
 use App\Http\Controllers\Api\V1\ShopHandlers\Inventory\AddonController;
 use App\Http\Controllers\Api\V1\ShopHandlers\Inventory\CategoryController;
 use App\Http\Controllers\Api\V1\ShopHandlers\Inventory\InventoryController;
 use App\Http\Controllers\Api\V1\ShopHandlers\Inventory\ModificationController;
-use App\Http\Controllers\Api\V1\ShopHandlers\ReviewController;
-use App\Http\Controllers\Api\V1\ShopHandlers\ShopController;
-use App\Http\Controllers\Api\V1\UserHandlers\FollowController;
-use App\Http\Controllers\Api\V1\ChatController;
-use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // Authentication routes
@@ -73,6 +80,11 @@ Route::prefix('v1')->group(function () {
     });
     Route::apiResource('orders', OrderController::class);
 
+    // Payment routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/payments/pay', [PaymentController::class, 'pay']);
+    });
+
     // Review routes
     Route::apiResource('reviews', ReviewController::class);
 
@@ -103,4 +115,146 @@ Route::prefix('v1')->group(function () {
         Route::post('/chat/typing/start', [ChatController::class, 'startTyping']);
         Route::post('/chat/typing/stop', [ChatController::class, 'stopTyping']);
     });
+});
+
+// Test routes for creating a subaccount on Flutterwave
+Route::middleware('auth:sanctum')->group(function () {
+    // Route to get the logged in user and create a subaccount on flutterwave and subaccount record for them
+    Route::get('/test-flutterwave-subaccount', function(Request $request) {
+        $flw = new FlutterwaveService();
+        $subaccount = $flw->createSubaccount([
+            'business_name' => 'Test Business',
+            'business_email' => 'test@vendor.business',
+            'business_mobile' => '0782673872',
+            'business_address' => 'Mbarara Uganda',
+            'account_bank' => '035',
+            'account_number' => '00000000',
+            'split_type' => 'percentage',
+            'split_value' => 0.5,  
+            'country' => 'CM',
+        ]);
+        if($subaccount['status'] == 'success'){
+            $subaccount = Subaccount::create([
+                'user_id' => $request->user()->id,
+                'subaccount_id' => $subaccount['data']['subaccount_id'],
+                'business_name' => 'Test Business',
+                'business_email' => $request->user()->email,
+                'business_phone' => '0782673872',
+                'business_address' => 'Mbarara Uganda',
+                'bank_name' => $subaccount['data']['bank_name'],
+                'bank_code' => $subaccount['data']['account_bank'],
+                'account_number' => $subaccount['data']['account_number'],
+                'split_value_in_percentage' => 0.5,
+            ]);
+        }else{
+            return response()->json(['message' => 'Failed to create subaccount '.$subaccount['message'], 'subaccount' => $subaccount], 500);
+        }
+        return response()->json(['message' => 'Subaccount created successfully', 'subaccount' => $subaccount], 200);
+    });
+
+    // Route to get all subaccounts from flutterwave
+    Route::get('/test-flutterwave-subaccounts', function(Request $request) {
+        $flw = new FlutterwaveService();
+        $subaccounts = $flw->getAllSubaccounts();
+        return response()->json(['subaccounts' => $subaccounts], 200);
+    });
+
+    // Route to get banks and codes from flutterwave
+    Route::get('/test-flutterwave-banks-and-codes', function(Request $request) {
+        $flw = new FlutterwaveService();
+        $banks = $flw->getBanksAndCodes();
+        return response()->json(['banks' => $banks], 200);
+    });
+
+    // Route to test deleting a sub account
+    Route::get('/test-flutterwave-delete-subaccount/{subAccountId}', function ($subAccountId) {
+        $flw = new FlutterwaveService();
+        $response = $flw->deleteSubaccount($subAccountId);
+    
+        if (isset($response['status']) && $response['status'] === 'success') {
+            return response()->json([
+                'message' => 'Subaccount successfully deleted',
+                'flutterwave_response' => $response
+            ]);
+        }
+    
+        // If deletion failed or API returned an error
+        return response()->json([
+            'message' => 'Failed to delete subaccount',
+            'flutterwave_response' => $response
+        ], 400);
+    });
+
+
+    // Route to Test payment process
+    Route::post('/test-payment-for-order', function(Request  $request){
+        // Extract the first Order from the login user
+        $test_order = Order::whereHas('shop', function ($query) {
+            $query->where('id', '01k2cdnvdtrz2gn6w2gjchd74w');  // Orders from Jane Vendor's shop
+        })
+        ->where('user_id', $request->user()->id)
+        ->first();
+    
+        if (!$test_order) {
+            return response()->json(['error' => 'No order found for this user'], 404);
+        }
+    
+        $test_vendor = User::findOrFail($test_order->shop->owner_id);
+        $test_customer_name = $request->user()->name;
+        $test_customer_email = $request->user()->email;
+        
+        $test_data = [
+            'vendor_id'=> $test_vendor->id, 
+            'amount' => $request['amount'],
+            'email'=> $test_customer_email,
+            'name'=> $test_customer_name,
+            'order_id' => $test_order->id,
+            'payment_method' => $request['paymentMethod'],
+        ];
+
+        $mockRequest = new Request($test_data);
+        // attach authenticated user to the mock request
+        $mockRequest->setUserResolver(function () use ($request) {
+            return $request->user();
+        });
+
+        // Instantiate controller and dependencies
+        $paymentController = new PaymentController();
+        $flwService = app(FlutterwaveService::class); // resolve from container
+
+        // Call the method
+        return $paymentController->pay($mockRequest, $flwService);
+
+    });
+});
+
+// Add to backend/routes/api.php
+Route::get('/test-broadcast', function() {
+    event(new \App\Events\TestBroadcast());
+    return response()->json(['message' => 'Test broadcast']);
+});
+// Add to your test route in api.php:
+Route::get('/test-reverb-connection', function() {
+    try {
+        $broadcaster = app('Illuminate\Broadcasting\BroadcastManager');
+        $connection = $broadcaster->connection('reverb');
+        
+        Log::info('🔗 Reverb connection test', [
+            'driver' => get_class($connection),
+            'config' => config('broadcasting.connections.reverb')
+        ]);
+        
+        return response()->json([
+            'status' => 'Connection created',
+            'driver' => get_class($connection)
+        ]);
+    } catch (\Exception $e) {
+        Log::error('❌ Reverb connection failed', [
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
 });
