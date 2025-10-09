@@ -1,11 +1,16 @@
 import api from './api';
-import { CreateOrderPayload, Order } from '@/types/orders';
+import { CreateOrderPayload, Order, CreateOrderWithPaymentResponse } from '@/types/orders';
 import type { ApiResponse } from '@/types/api';
 
 const apiVersion = import.meta.env.VITE_API_VERSION;
 
 export const createOrder = async (orderData: CreateOrderPayload): Promise<Order> => {
   const response = await api.post<ApiResponse<Order>>(`${apiVersion}/orders`, orderData);
+  return response.data.data;
+};
+
+export const createOrderWithPayment = async (orderData: CreateOrderPayload): Promise<CreateOrderWithPaymentResponse> => {
+  const response = await api.post<ApiResponse<CreateOrderWithPaymentResponse>>(`${apiVersion}/orders/with-payment`, orderData);
   return response.data.data;
 };
 

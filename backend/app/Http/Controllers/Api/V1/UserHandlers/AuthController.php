@@ -40,33 +40,49 @@ class AuthController extends Controller
         ]);
 
         // When creating a vendor, we need to create a subaccount for them
-        // Step 1: First create a subaccount on Flutterwave for 
         if ($data['role'] == 'vendor') {
-            $subaccount = $flw->createSubaccount([
-                'business_name' => $data['business_name'],
-                'business_email' => $data['business_email'],
-                'business_phone' => $data['business_phone'],
-                'business_address' => $data['business_address'],
-                'bank_name' => $data['bank_name'],
-                'account_bank' => $data['bank_code'],
-                'account_number' => $data['account_number'],
-                'split_value_in_percentage' => $data['split_value_in_percentage'],
-            ]);
-            if ($subaccount['status'] == 'success') {
-                $subaccount = Subaccount::create([
-                    'user_id' => $user->id,
-                    'subaccount_id' => $subaccount['data']['id'],
+            try {
+                $subaccountData = [
                     'business_name' => $data['business_name'],
                     'business_email' => $data['business_email'],
-                    'business_phone' => $data['business_phone'],
+                    'business_mobile' => $data['business_phone'],
                     'business_address' => $data['business_address'],
-                    'bank_name' => $data['bank_name'],
-                    'bank_code' => $data['bank_code'],
+                    'account_bank' => $data['bank_code'],
                     'account_number' => $data['account_number'],
-                    'split_value_in_percentage' => $data['split_value_in_percentage'],
-                ]);
-            }else{
-                return response()->json(['message' => 'Failed to create subaccount'], 500);
+                    'split_type' => 'percentage',
+                    'split_value' => $data['split_value_in_percentage'] / 100, // Convert percentage to decimal
+                    'country' => 'UG', // Uganda
+                ];
+
+                $subaccountResponse = $flw->createSubaccount($subaccountData);
+                
+                if (isset($subaccountResponse['status']) && $subaccountResponse['status'] == 'success') {
+                    Subaccount::create([
+                        'user_id' => $user->id,
+                        'subaccount_id' => $subaccountResponse['data']['subaccount_id'],
+                        'business_name' => $data['business_name'],
+                        'business_email' => $data['business_email'],
+                        'business_phone' => $data['business_phone'],
+                        'business_address' => $data['business_address'],
+                        'bank_name' => $subaccountResponse['data']['bank_name'] ?? $data['bank_name'],
+                        'bank_code' => $data['bank_code'],
+                        'account_number' => $data['account_number'],
+                        'split_value_in_percentage' => $data['split_value_in_percentage'],
+                    ]);
+                } else {
+                    // If subaccount creation fails, delete the user and return error
+                    $user->delete();
+                    return response()->json([
+                        'message' => 'Failed to create vendor subaccount: ' . ($subaccountResponse['message'] ?? 'Unknown error'),
+                        'flutterwave_response' => $subaccountResponse
+                    ], 500);
+                }
+            } catch (\Exception $e) {
+                // If subaccount creation fails, delete the user and return error
+                $user->delete();
+                return response()->json([
+                    'message' => 'Failed to create vendor subaccount: ' . $e->getMessage()
+                ], 500);
             }
         }
 

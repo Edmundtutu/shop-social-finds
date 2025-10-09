@@ -25,6 +25,10 @@ export interface CreateOrderPayload {
   delivery_lat: number;
   delivery_lng: number;
   notes?: string;
+  // Payment fields
+  payment_method?: 'card' | 'mobilemoneyuganda';
+  customer_email: string;
+  customer_name: string;
 }
 
 export interface OrderItem {
@@ -38,12 +42,26 @@ export interface OrderItem {
   product?: Product; // Nested product details
 }
 
+export interface Payment {
+  id: string;
+  payer_id: string;
+  payee_id: string;
+  order_id: string;
+  tx_ref: string;
+  amount: number;
+  status: 'pending' | 'successful' | 'failed' | 'cancelled';
+  payment_method: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Order {
   id: number;
   user_id: string; // ULID
   shop_id: string; // ULID
   total: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  payment_status: 'pending' | 'paid' | 'failed' | 'cancelled';
   delivery_address: string;
   delivery_lat: number;
   delivery_lng: number;
@@ -53,4 +71,12 @@ export interface Order {
   items: OrderItem[];
   user?: AuthUser; // Nested user details for vendor orders
   shop?: Shop;
+  payment?: Payment;
+}
+
+export interface CreateOrderWithPaymentResponse {
+  order: Order;
+  payment_url?: string;
+  payment_data?: any;
+  message: string;
 }

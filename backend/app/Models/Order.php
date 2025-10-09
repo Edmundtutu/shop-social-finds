@@ -22,6 +22,7 @@ class Order extends Model
         'delivery_type',
         'delivery_address',
         'notes',
+        'payment_status',
     ];
 
     protected $casts = [
@@ -46,5 +47,22 @@ class Order extends Model
     public function payments(): HasOne
     {
         return $this->hasOne(Payment::class);
+    }
+
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->payment_status === 'paid' || 
+               ($this->payment && $this->payment->status === 'successful');
+    }
+
+    public function isPendingPayment(): bool
+    {
+        return $this->payment_status === 'pending' || 
+               ($this->payment && $this->payment->status === 'pending');
     }
 }

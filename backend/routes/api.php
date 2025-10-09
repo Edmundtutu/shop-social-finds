@@ -79,10 +79,21 @@ Route::prefix('v1')->group(function () {
         Route::patch('/vendor/orders/{order}/reject', [OrderController::class, 'rejectOrder']);
     });
     Route::apiResource('orders', OrderController::class);
+    
+    // Atomic order creation with payment
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/orders/with-payment', [OrderController::class, 'storeWithPayment']);
+    });
 
     // Payment routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payments/pay', [PaymentController::class, 'pay']);
+    });
+
+    // Order payment routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/orders/{order}/initiate-payment', [OrderController::class, 'initiatePayment']);
+        Route::get('/orders/{order}/payment-status', [OrderController::class, 'checkPaymentStatus']);
     });
 
     // Review routes

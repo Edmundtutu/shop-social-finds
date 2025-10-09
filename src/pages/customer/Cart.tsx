@@ -25,8 +25,9 @@ import {
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
-import { createOrder } from '@/services/orderService';
-import type { CreateOrderPayload, Order } from '@/types/orders';
+import { createOrderWithPayment } from '@/services/orderService';
+import type { CreateOrderPayload, CreateOrderWithPaymentResponse } from '@/types/orders';
+import { useAuth } from '@/context/AuthContext';
 
 
 {/* Helper Functions - These would be added to your component */}
@@ -49,6 +50,7 @@ const removeAddOn = (remove: (itemId: string, addOnId: string) => void, itemId: 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const {
     items,
     removeItem,
@@ -66,11 +68,29 @@ const Cart: React.FC = () => {
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
-  const { mutateAsync: placeOrder, isPending: isProcessingOrder } = useMutation<Order, any, CreateOrderPayload>({
-    mutationFn: createOrder,
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'mobilemoneyuganda'>('mobilemoneyuganda');
+  const [customerEmail, setCustomerEmail] = useState(user?.email || '');
+  const [customerName, setCustomerName] = useState(user?.name || '');
+  
+  const { mutateAsync: placeOrderWithPayment, isPending: isProcessingOrder } = useMutation<CreateOrderWithPaymentResponse, any, CreateOrderPayload>({
+    mutationFn: createOrderWithPayment,
     onSuccess: (data, variables) => {
       // eslint-disable-next-line no-console
-      console.log(`Order placed successfully for shop ${variables.shop_id}!`, data);
+      console.log(`Order with payment initiated successfully for shop ${variables.shop_id}!`, data);
+      
+      // If payment URL is provided, redirect to payment
+      if (data.payment_url) {
+        window.open(data.payment_url, '_blank');
+        toast({
+          title: 'Payment initiated!',
+          description: 'Please complete your payment in the new window.',
+        });
+      } else {
+        toast({
+          title: 'Order created successfully!',
+          description: 'Your order has been placed and payment is being processed.',
+        });
+      }
     },
     onError: (error: any, variables) => {
       toast({
@@ -90,12 +110,15 @@ const Cart: React.FC = () => {
   const handleCheckout = async () => {
     if (!canCheckout) return;
 
-    // Debug: Log the cart state and items being processed
-    console.log('=== CART CHECKOUT DEBUG ===');
-    console.log('Cart items:', items);
-    console.log('Items by shop:', itemsByShop);
-    console.log('Total with add-ons:', getTotalWithAddOns());
-    console.log('Legacy total:', getTotal());
+    // Validate payment fields
+    if (!customerEmail.trim() || !customerName.trim()) {
+      toast({
+        title: 'Payment information required',
+        description: 'Please provide your email and name for payment processing',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (deliveryType === 'delivery' && !deliveryAddress.trim()) {
       toast({
@@ -111,9 +134,6 @@ const Cart: React.FC = () => {
     const payloads = Object.entries(itemsByShop).map(([groupKey, shopItems]) => {
       const shopIdStr = String(shopItems?.[0]?.shop?.id ?? groupKey);
       const isValidUlid = (val: string) => /^[0-9A-HJKMNP-TV-Z]{26}$/i.test(val);
-
-      // Debug: Log each shop's items being processed
-      console.log(`Processing shop ${shopIdStr}:`, shopItems);
 
       if (!shopIdStr || !isValidUlid(shopIdStr)) {
         toast({
@@ -143,37 +163,29 @@ const Cart: React.FC = () => {
         delivery_lat: deliveryCoords.lat,
         delivery_lng: deliveryCoords.lng,
         notes: notes || undefined,
+        // Payment fields
+        payment_method: paymentMethod,
+        customer_email: customerEmail,
+        customer_name: customerName,
       };
 
-      // Debug: Log the constructed payload for this shop
-      console.log(`Shop ${shopIdStr} payload:`, payload);
       return payload;
     });
 
-    // Debug: Log all payloads being sent
-    console.log('=== FINAL PAYLOADS TO SEND ===');
-    console.log('All payloads:', payloads);
-
-    const orderCreationPromises = payloads.map((p) => placeOrder(p));
+    const orderCreationPromises = payloads.map((p) => placeOrderWithPayment(p));
 
     try {
       await Promise.all(orderCreationPromises);
       clearCart();
       toast({
-        title: 'OrderHandlers placed successfully!',
-        description: 'You can view your orders in your profile.',
+        title: 'Orders placed successfully!',
+        description: 'Your orders have been created and payment has been initiated.',
       });
       navigate('/profile');
     } catch (error) {
       // Errors handled in onError; keep catch to avoid unhandled rejections
       // eslint-disable-next-line no-console
       console.error('An error occurred during checkout:', error);
-      // Debug: Log the full error details
-      console.error('Full error object:', error);
-      if (error && typeof error === 'object' && 'response' in error) {
-        console.error('Response data:', (error as any).response?.data);
-        console.error('Response status:', (error as any).response?.status);
-      }
     }
   };
 
@@ -538,14 +550,65 @@ const Cart: React.FC = () => {
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="customer_name">Full Name</Label>
+                <input
+                  id="customer_name"
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your full name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="customer_email">Email Address</Label>
+                <input
+                  id="customer_email"
+                  type="email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your email address"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <RadioGroup value={paymentMethod} onValueChange={(value: 'card' | 'mobilemoneyuganda') => setPaymentMethod(value)}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="mobilemoneyuganda" id="mobilemoney" />
+                    <Label htmlFor="mobilemoney" className="flex items-center gap-2">
+                      <span>Mobile Money Uganda</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="card" id="card" />
+                    <Label htmlFor="card" className="flex items-center gap-2">
+                      <span>Card Payment</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
               <Button 
                 className="w-full" 
                 size="lg"
                 onClick={handleCheckout}
-                disabled={isProcessingOrder || (deliveryType === 'delivery' && !deliveryAddress.trim())}
+                disabled={isProcessingOrder || (deliveryType === 'delivery' && !deliveryAddress.trim()) || !customerEmail.trim() || !customerName.trim()}
               >
-                {isProcessingOrder ? 'Processing...' : `Checkout - UGX ${finalTotal.toLocaleString()}`}
+                {isProcessingOrder ? 'Processing...' : `Pay & Place Order - UGX ${finalTotal.toLocaleString()}`}
               </Button>
             </CardContent>
           </Card>
