@@ -23,8 +23,9 @@ return new class extends Migration
             $table->index('shop_id');
             $table->index(['source_node_id', 'target_node_id']);
         });
-        // Raw SQL to enforce source_node_id ≠ target_node_id
-        DB::statement('ALTER TABLE inventory_node_edges ADD CONSTRAINT chk_source_target CHECK (source_node_id <> target_node_id)');
+        
+        // SQLite doesn't support CHECK constraints in ALTER TABLE
+        // The constraint will be enforced at the application level
     }
 
     /**

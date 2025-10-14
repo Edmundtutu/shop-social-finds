@@ -36,18 +36,33 @@ export default function PaymentModal({ url, onPaymentComplete }: PaymentModalPro
     setIsMounted(true);
     
     const handleMessage = (event: MessageEvent) => {
-      // Only accept messages from the same origin for security
-      if (event.origin !== window.location.origin) return;
+      // Accept messages from Flutterwave domains for payment callbacks
+      const allowedOrigins = [
+        window.location.origin,
+        'https://checkout.flutterwave.com',
+        'https://api.flutterwave.com'
+      ];
+      
+      if (!allowedOrigins.includes(event.origin)) {
+        console.log('Rejected message from origin:', event.origin);
+        return;
+      }
       
       // Only handle messages after component is fully mounted
       if (!isMounted) return;
 
-      if (event.data.type === 'PAYMENT_SUCCESS') {
+      console.log('Received message:', event.data);
+
+      // Handle Flutterwave payment completion
+      if (event.data.type === 'PAYMENT_SUCCESS' || event.data.status === 'successful') {
         console.log('Payment success message received');
-        handlePaymentSuccess(event.data.txRef);
-      } else if (event.data.type === 'PAYMENT_FAILED') {
+        handlePaymentSuccess(event.data.txRef || event.data.tx_ref);
+      } else if (event.data.type === 'PAYMENT_FAILED' || event.data.status === 'failed') {
         console.log('Payment failed message received');
-        handlePaymentFailure(event.data.txRef);
+        handlePaymentFailure(event.data.txRef || event.data.tx_ref);
+      } else if (event.data.status === 'cancelled') {
+        console.log('Payment cancelled message received');
+        handlePaymentFailure(event.data.txRef || event.data.tx_ref);
       }
     };
 
@@ -81,8 +96,17 @@ export default function PaymentModal({ url, onPaymentComplete }: PaymentModalPro
           src={url}
           className="w-full h-full border-0"
           title="Payment"
-          onLoad={() => setIsLoading(false)}
-          // sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-popups" for non complications for now 
+          onLoad={() => {
+            setIsLoading(false);
+            console.log('Payment iframe loaded');
+          }}
+          onError={(e) => {
+            console.error('Payment iframe error:', e);
+            setIsLoading(false);
+            handlePaymentFailure();
+          }}
+          sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-popups allow-modals"
+          allow="payment; microphone; camera"
         />
       </div>
     </div>

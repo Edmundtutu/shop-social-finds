@@ -11,7 +11,14 @@ export const createOrder = async (orderData: CreateOrderPayload): Promise<Order>
 
 export const createOrderWithPayment = async (orderData: CreateOrderPayload): Promise<CreateOrderWithPaymentResponse> => {
   const response = await api.post<ApiResponse<CreateOrderWithPaymentResponse>>(`${apiVersion}/orders/with-payment`, orderData);
-  return response.data.data;
+  
+  // Handle both old and new response formats
+  if (response.data.data) {
+    return response.data.data;
+  }
+  
+  // Fallback for direct response format
+  return response.data as CreateOrderWithPaymentResponse;
 };
 
 export const getOrders = async (): Promise<Order[]> => {

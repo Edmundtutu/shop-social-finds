@@ -22,6 +22,26 @@ class Payment extends Model
         'payment_method',
     ];
 
+    protected $casts = [
+        'amount' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    public function getStatusAttribute($value)
+    {
+        return $value;
+    }
+
+    public function setStatusAttribute($value)
+    {
+        $allowedStatuses = ['pending', 'successful', 'failed', 'cancelled'];
+        if (!in_array($value, $allowedStatuses)) {
+            throw new \InvalidArgumentException("Invalid payment status: {$value}");
+        }
+        $this->attributes['status'] = $value;
+    }
+
     public function payer():BelongsTo
     {
         return $this->belongsTo(User::class, 'payer_id');

@@ -18,20 +18,41 @@ class FlutterwaveService
     public function getBanksAndCodes($country = 'UG') // Focusing on Uganda for now
     {
         try {
-            return Http::withToken($this->secret)
-                ->get("{$this->baseUrl}/banks?country={$country}")
-                ->json()['data'];
+            $response = Http::withToken($this->secret)
+                ->timeout(30)
+                ->get("{$this->baseUrl}/banks?country={$country}");
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                if (isset($data['status']) && $data['status'] === 'success') {
+                    return $data['data'];
+                }
+                throw new \Exception('Flutterwave API returned error: ' . ($data['message'] ?? 'Unknown error'));
+            }
+            
+            throw new \Exception('HTTP request failed with status: ' . $response->status());
         } catch (\Exception $e) {
-            Log::error('Flutterwave getBandsAndCodes error', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Failed to get banks and codes', 'error' => $e->getMessage()], 500);
+            Log::error('Flutterwave getBanksAndCodes error', ['error' => $e->getMessage()]);
+            throw $e;
         }
     }
 
     public function createSubaccount($data)
     {
-        return Http::withToken($this->secret)
-            ->post("{$this->baseUrl}/subaccounts", $data)
-            ->json();
+        try {
+            $response = Http::withToken($this->secret)
+                ->timeout(30)
+                ->post("{$this->baseUrl}/subaccounts", $data);
+            
+            if ($response->successful()) {
+                return $response->json();
+            }
+            
+            throw new \Exception('HTTP request failed with status: ' . $response->status());
+        } catch (\Exception $e) {
+            Log::error('Flutterwave createSubaccount error', ['error' => $e->getMessage(), 'data' => $data]);
+            throw $e;
+        }
     }
 
       /**
@@ -92,16 +113,42 @@ class FlutterwaveService
     
     public function initiatePayment($data)
     {
-        return Http::withToken($this->secret)
-            ->post("{$this->baseUrl}/payments", $data)
-            ->json();
+        try {
+            $response = Http::withToken($this->secret)
+                ->timeout(30)
+                ->post("{$this->baseUrl}/payments", $data);
+            
+            if ($response->successful()) {
+                $result = $response->json();
+                if (isset($result['status']) && $result['status'] === 'success') {
+                    return $result;
+                }
+                throw new \Exception('Flutterwave payment initiation failed: ' . ($result['message'] ?? 'Unknown error'));
+            }
+            
+            throw new \Exception('HTTP request failed with status: ' . $response->status());
+        } catch (\Exception $e) {
+            Log::error('Flutterwave initiatePayment error', ['error' => $e->getMessage(), 'data' => $data]);
+            throw $e;
+        }
     }
 
     public function verifyTransaction($transactionId)
     {
-        return Http::withToken($this->secret)
-            ->get("{$this->baseUrl}/transactions/{$transactionId}/verify")
-            ->json();
+        try {
+            $response = Http::withToken($this->secret)
+                ->timeout(30)
+                ->get("{$this->baseUrl}/transactions/{$transactionId}/verify");
+            
+            if ($response->successful()) {
+                return $response->json();
+            }
+            
+            throw new \Exception('HTTP request failed with status: ' . $response->status());
+        } catch (\Exception $e) {
+            Log::error('Flutterwave verifyTransaction error', ['error' => $e->getMessage(), 'transactionId' => $transactionId]);
+            throw $e;
+        }
     }
 
 }
