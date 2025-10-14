@@ -25,7 +25,7 @@ class OrderController extends Controller
     {
         $this->authorize('viewAny', Order::class);
 
-        $orders = Auth::user()->orders()->with('items.product')->latest()->paginate();
+        $orders = Auth::user()->orders()->with(['items.product', 'shop'])->latest()->paginate();
 
         return OrderResource::collection($orders);
     }
@@ -82,7 +82,7 @@ class OrderController extends Controller
             return $order;
         });
 
-        return new OrderResource($order->load('items.product'));
+        return new OrderResource($order->load(['items.product', 'shop']));
     }
 
     /**
@@ -189,17 +189,20 @@ class OrderController extends Controller
             }
 
             return [
-                'order' => $order->load('items.product', 'payment'),
+                'order' => $order->load(['items.product', 'shop', 'payment']),
                 'payment_url' => $paymentResponse['data']['link'] ?? null,
                 'payment_data' => $paymentResponse,
             ];
         });
 
         return response()->json([
+            'data' => [
+                'order' => new OrderResource($result['order']->load(['items.product', 'shop', 'payment'])),
+                'payment_url' => $result['payment_url'],
+                'payment_data' => $result['payment_data'],
+            ],
             'message' => 'Order created and payment initiated successfully',
-            'order' => new OrderResource($result['order']),
-            'payment_url' => $result['payment_url'],
-            'payment_data' => $result['payment_data'],
+            'status' => 201,
         ], 201);
     }
 
@@ -210,7 +213,7 @@ class OrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        return new OrderResource($order->load('items.product'));
+        return new OrderResource($order->load(['items.product', 'shop']));
     }
 
     /**
@@ -359,7 +362,7 @@ class OrderController extends Controller
                 'message' => 'Payment initiated successfully',
                 'payment_url' => $response['data']['link'] ?? null,
                 'payment_data' => $response,
-                'order' => new OrderResource($order->load('items.product', 'payment'))
+                'order' => new OrderResource($order->load(['items.product', 'shop', 'payment']))
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -69,8 +69,8 @@ export interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
-  user?: AuthUser; // Nested user details for vendor orders
-  shop?: Shop;
+  shop?: Shop; 
+  user?: AuthUser;
   payment?: Payment;
 }
 

@@ -32,6 +32,7 @@ import VendorProfile from '@/pages/vendor/Profile';
 // Chat Pages
 import { ConversationListPage } from '@/pages/chat/ConversationListPage';
 import { ChatPage } from '@/pages/chat/ChatPage';
+import PaymentResult from '@/pages/customer/PaymentResult';
 
 // Route Guards
 interface ProtectedRouteProps {
@@ -150,6 +151,13 @@ const AppRoutes: React.FC = () => {
           <ChatPage />
         </ProtectedRoute>
       } />
+      
+      {/* Payment results Route  */}
+      
+      <Route path="/payment-result" element={
+        <PaymentResult/>
+      } />
+       
 
       {/* Vendor Routes */}
       <Route path="/vendor/dashboard" element={
