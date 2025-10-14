@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
@@ -33,6 +33,7 @@ import VendorProfile from '@/pages/vendor/Profile';
 import { ConversationListPage } from '@/pages/chat/ConversationListPage';
 import { ChatPage } from '@/pages/chat/ChatPage';
 import PaymentResult from '@/pages/customer/PaymentResult';
+import FeedPanel from '@/layouts/FeedPanel';
 
 // Route Guards
 interface ProtectedRouteProps {
@@ -103,7 +104,11 @@ const AppRoutes: React.FC = () => {
 
       {/* Public Routes - Allow guests */}
       <Route path="/" element={
-        <MainLayout>
+        <MainLayout rightPanel ={
+          <Suspense fallback={<div className="animate-pulse h-32 bg-muted rounded-lg" />}>
+            <FeedPanel />
+          </Suspense>
+        }>
           <Home />
         </MainLayout>
       } />

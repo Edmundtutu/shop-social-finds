@@ -86,7 +86,7 @@ export default function PaymentModal({ url, onPaymentComplete }: PaymentModalPro
           <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
             <div className="flex flex-col items-center gap-3">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="text-sm text-muted-foreground">Loading payment...</p>
+              <p className="text-sm text-muted-foreground">....</p>
             </div>
           </div>
         )}

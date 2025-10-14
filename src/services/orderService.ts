@@ -18,7 +18,7 @@ export const createOrderWithPayment = async (orderData: CreateOrderPayload): Pro
   }
   
   // Fallback for direct response format
-  return response.data as CreateOrderWithPaymentResponse;
+  return response.data as unknown as CreateOrderWithPaymentResponse;
 };
 
 export const getOrders = async (): Promise<Order[]> => {

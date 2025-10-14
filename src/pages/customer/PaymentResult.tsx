@@ -21,6 +21,27 @@ export default function PaymentResult() {
     setTxRef(tx_ref);
     setMessage(msg || null);
 
+    // Notify opener/parent (iframe or new tab) about result
+    try {
+      const payload: any = {
+        type: status === 'successful' || status === 'success' ? 'PAYMENT_SUCCESS' : (status === 'failed' ? 'PAYMENT_FAILED' : 'PAYMENT_STATUS'),
+        status,
+        message: msg,
+        txRef: tx_ref,
+        tx_ref: tx_ref,
+      };
+      // If embedded in iframe, postMessage to parent
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(payload, '*');
+      }
+      // If opened as a popup, postMessage to opener
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, '*');
+      }
+    } catch (e) {
+      // ignore cross-origin errors
+    }
+
     setLoading(false);
   }, []);
 

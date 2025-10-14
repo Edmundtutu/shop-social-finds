@@ -157,7 +157,7 @@ class OrderController extends Controller
                 'payer_id' => $order->user_id,
                 'payee_id' => $vendor->id,
                 'tx_ref' => $txRef,
-                'amount' => (int) ($order->total * 100), // Convert to cents
+                'amount' => (int) ($order->total),
                 'status' => 'pending',
                 'payment_method' => $paymentMethod,
             ]);
@@ -165,7 +165,7 @@ class OrderController extends Controller
             // Initiate payment with Flutterwave
             $payload = [
                 'tx_ref' => $txRef,
-                'amount' => (int) ($order->total * 100),
+                'amount' => (int) ($order->total),
                 'currency' => 'UGX',
                 'redirect_url' => route('payment.callback'),
                 'customer' => [

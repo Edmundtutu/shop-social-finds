@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import PaymentModal from '@/components/customer/PayModal';
-import {
-  Trash2,
-  Plus,
-  Minus,
+import { 
+  Trash2, 
+  Plus, 
+  Minus, 
   ShoppingBag,
   MapPin,
   Truck,
@@ -80,13 +80,8 @@ const Cart: React.FC = () => {
   const { mutateAsync: placeOrderWithPayment, isPending: isProcessingOrder } = useMutation<CreateOrderWithPaymentResponse, any, CreateOrderPayload>({
     mutationFn: createOrderWithPayment,
     onSuccess: (data, variables) => {
-      // eslint-disable-next-line no-console
-      console.log(`Order with payment initiated successfully for shop ${variables.shop_id}!`, data);
-      console.log('Full API response:', data);
-      
       // Extract payment URL from the response
-      const paymentUrl = data.payment_url || data.data?.link || data.data?.data?.link;
-      console.log('Payment URL:', paymentUrl);
+      const paymentUrl = data.payment_url 
 
       if (paymentUrl) {
         // Use functional updates to ensure proper state updates
@@ -228,7 +223,9 @@ const Cart: React.FC = () => {
           url={paymentUrl}
           onPaymentComplete={(success, txRef) => {
             setShowModal(false);
-            clearCart();
+            if (success) {
+              clearCart();
+            }
           }}
         />
       )}
@@ -249,8 +246,8 @@ const Cart: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-muted">
                       {shopItems[0].shop.avatar ? (
-                        <img
-                          src={shopItems[0].shop.avatar}
+                        <img 
+                          src={shopItems[0].shop.avatar} 
                           alt={shopItems[0].shop.name}
                           className="w-full h-full object-cover"
                         />
@@ -289,7 +286,7 @@ const Cart: React.FC = () => {
                             <Package className="h-4 w-4" />
                           </Button>
                         </DialogTrigger>
-
+                        
                         <DialogContent className="max-w-2xl max-h-[80vh]">
                           <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
@@ -297,7 +294,7 @@ const Cart: React.FC = () => {
                               Package Plus for {item.product.name}
                             </DialogTitle>
                           </DialogHeader>
-
+                          
                           <ScrollArea className="max-h-[60vh]">
                             <div className="space-y-4">
                               {/* Current Add-ons Display */}
@@ -313,8 +310,8 @@ const Cart: React.FC = () => {
                                         <div className="flex items-center gap-2">
                                           <div className="w-8 h-8 bg-background rounded flex items-center justify-center">
                                             {addOn.product.images?.[0] ? (
-                                              <img
-                                                src={addOn.product.images[0]}
+                                              <img 
+                                                src={addOn.product.images[0]} 
                                                 alt={addOn.product.name}
                                                 className="w-full h-full object-cover rounded"
                                               />
@@ -325,7 +322,7 @@ const Cart: React.FC = () => {
                                           <div>
                                             <p className="font-medium text-sm">{addOn.product.name}</p>
                                             <p className="text-xs text-muted-foreground">
-                                              UGX {addOn.discountedPrice?.toLocaleString()}
+                                              UGX {addOn.discountedPrice?.toLocaleString()} 
                                               <span className="line-through ml-1">
                                                 UGX {addOn.originalPrice.toLocaleString()}
                                               </span>
@@ -347,10 +344,10 @@ const Cart: React.FC = () => {
                                   </div>
                                 </div>
                               )}
-
+                              
                               {/* Add New Add-on Button */}
                               <div className="border-t pt-4">
-                                <Link
+                                <Link 
                                   to={`/shops/${item.shop.id}?addOnFor=${item.product.id}&cartItemId=${item.id}`}
                                   className="flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 hover:bg-muted/50 transition-colors"
                                 >
@@ -358,7 +355,7 @@ const Cart: React.FC = () => {
                                   <span className="font-medium">Browse Shop for Add-ons</span>
                                 </Link>
                               </div>
-
+                              
                               {/* Package Savings Display */}
                               {item.addOns && item.addOns.length > 0 && (
                                 <div className="bg-green-50 border border-green-200 rounded-lg p-3">
@@ -378,21 +375,21 @@ const Cart: React.FC = () => {
                         </DialogContent>
                       </Dialog>
                     </div>
-
+                    
                     {/* Main Item Card */}
                     <div className="flex gap-3 sm:gap-4 p-3 rounded-lg border">
                       {/* Product Image with Add-on Indicator */}
                       <div className="relative w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
                         {item.product.images?.[0] ? (
-                          <img
-                            src={item.product.images[0]}
+                          <img 
+                            src={item.product.images[0]} 
                             alt={item.product.name}
                             className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
                           <div className="text-xl sm:text-2xl">📦</div>
                         )}
-
+                        
                         {/* Add-on Count Badge */}
                         {item.addOns && item.addOns.length > 0 && (
                           <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
@@ -400,13 +397,13 @@ const Cart: React.FC = () => {
                           </div>
                         )}
                       </div>
-
+                      
                       {/* Product Details and Controls */}
                       <div className="flex-1 space-y-2">
                         {/* Product Name and Description with Remove Button */}
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <Link
+                            <Link 
                               to={`/product/${item.product.id}`}
                               className="font-medium hover:text-primary text-sm sm:text-base line-clamp-2"
                             >
@@ -415,7 +412,7 @@ const Cart: React.FC = () => {
                             <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-1">
                               {item.product.description}
                             </p>
-
+                            
                             {/* Add-ons Summary */}
                             {item.addOns && item.addOns.length > 0 && (
                               <div className="mt-2 flex flex-wrap gap-1">
@@ -441,7 +438,7 @@ const Cart: React.FC = () => {
                             <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
-
+                        
                         {/* Quantity Controls and Price */}
                         <div className="flex items-center justify-between">
                           {/* Quantity Controls */}
@@ -466,7 +463,7 @@ const Cart: React.FC = () => {
                               <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           </div>
-
+                          
                           {/* Price Information with Package Deal */}
                           <div className="text-right">
                             <div className="font-medium text-sm sm:text-base">
@@ -489,7 +486,7 @@ const Cart: React.FC = () => {
               </CardContent>
             </Card>
           ))}
-
+          
           <div className="flex justify-between items-center">
             <Button variant="outline" onClick={clearCart}>
               Clear Cart
@@ -511,14 +508,14 @@ const Cart: React.FC = () => {
                 <span>Subtotal ({itemCount} items)</span>
                 <span>UGX {total.toLocaleString()}</span>
               </div>
-
+              
               {deliveryType === 'delivery' && (
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
                   <span>UGX {deliveryFee.toLocaleString()}</span>
                 </div>
               )}
-
+              
               <div className="border-t pt-4">
                 <div className="flex justify-between font-medium text-lg">
                   <span>Total</span>
@@ -623,8 +620,8 @@ const Cart: React.FC = () => {
                 </RadioGroup>
               </div>
 
-              <Button
-                className="w-full"
+              <Button 
+                className="w-full" 
                 size="lg"
                 onClick={handleCheckout}
                 disabled={isProcessingOrder || (deliveryType === 'delivery' && !deliveryAddress.trim()) || !customerEmail.trim() || !customerName.trim()}

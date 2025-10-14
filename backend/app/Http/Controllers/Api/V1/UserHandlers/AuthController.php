@@ -66,9 +66,9 @@ class AuthController extends Controller
                         'business_address' => $data['business_address'],
                         'bank_name' => $subaccountResponse['data']['bank_name'] ?? $data['bank_name'],
                         'bank_code' => $data['bank_code'],
-                        'account_number' => $data['account_number'],
-                        'split_value_in_percentage' => $data['split_value_in_percentage'],
-                    ]);
+                    'account_number' => $data['account_number'],
+                    'split_value_in_percentage' => $data['split_value_in_percentage'],
+                ]);
                 } else {
                     // If subaccount creation fails, delete the user and return error
                     $user->delete();

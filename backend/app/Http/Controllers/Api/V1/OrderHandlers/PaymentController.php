@@ -148,12 +148,8 @@ class PaymentController extends Controller
                         $payment->order->update(['payment_status' => 'paid']);
                     }
 
-                    // Redirect to payment result page
-                    return redirect()->route('payment.result', [
-                        'status' => 'success',
-                        'message' => 'Payment verified successfully',
-                        'tx_ref' => $txRef
-                    ]);
+                    // Redirect to frontend payment result page
+                    return redirect(rtrim(env('FRONTEND_URL'), '/') . '/payment-result?status=success&message=' . urlencode('Payment verified successfully') . '&tx_ref=' . urlencode($txRef));
                 }
 
                 $payment->status = 'failed';
@@ -163,11 +159,7 @@ class PaymentController extends Controller
                     $payment->order->update(['payment_status' => 'failed']);
                 }
 
-                return redirect()->route('payment.result', [
-                    'status' => 'failed',
-                    'message' => 'Payment verification failed',
-                    'tx_ref' => $txRef
-                ]);
+                return redirect(rtrim(env('FRONTEND_URL'), '/') . '/payment-result?status=failed&message=' . urlencode('Payment verification failed') . '&tx_ref=' . urlencode($txRef));
             }
 
             if ($status === 'cancelled') {
@@ -178,11 +170,7 @@ class PaymentController extends Controller
                     $payment->order->update(['payment_status' => 'cancelled']);
                 }
 
-                return redirect()->route('payment.result', [
-                    'status' => 'cancelled',
-                    'message' => 'Payment cancelled',
-                    'tx_ref' => $txRef
-                ]);
+                return redirect(rtrim(env('FRONTEND_URL'), '/') . '/payment-result?status=cancelled&message=' . urlencode('Payment cancelled') . '&tx_ref=' . urlencode($txRef));
             }
 
             // Fallback
@@ -193,19 +181,11 @@ class PaymentController extends Controller
                 $payment->order->update(['payment_status' => $status === 'failed' ? 'failed' : 'pending']);
             }
 
-            return redirect()->route('payment.result', [
-                'status' => $status ?? 'failed',
-                'message' => 'Payment updated',
-                'tx_ref' => $txRef
-            ]);
+            return redirect(rtrim(env('FRONTEND_URL'), '/') . '/payment-result?status=' . urlencode($status ?? 'failed') . '&message=' . urlencode('Payment updated') . '&tx_ref=' . urlencode($txRef));
         } catch (\Exception $e) {
             Log::error('Flutterwave verifyTransaction error', ['error' => $e->getMessage()]);
 
-            return redirect()->route('payment.result', [
-                'status' => 'error',
-                'message' => 'Callback processing failed: ' . $e->getMessage(),
-                'tx_ref' => $txRef
-            ]);
+            return redirect(rtrim(env('FRONTEND_URL'), '/') . '/payment-result?status=error&message=' . urlencode('Callback processing failed: ' . $e->getMessage()) . '&tx_ref=' . urlencode($txRef));
         }
     }
     

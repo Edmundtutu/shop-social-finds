@@ -7,12 +7,7 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
-// Flutterwave payment callback
+// Flutterwave payment callback (redirects to frontend)
 Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
-
-// Payment result page
-Route::get('/payment-result', function () {
-    return view('payment-result');
-})->name('payment.result');
