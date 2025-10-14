@@ -11,3 +11,8 @@ require __DIR__.'/auth.php';
 
 // Flutterwave payment callback
 Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
+
+// Payment result page
+Route::get('/payment-result', function () {
+    return view('payment-result');
+})->name('payment.result');

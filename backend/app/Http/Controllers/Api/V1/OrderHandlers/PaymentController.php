@@ -76,13 +76,30 @@ class PaymentController extends Controller
             if (!is_array($response)) {
                 return response()->json([
                     'message' => 'Failed to initiate payment',
+                    'error' => 'Invalid response from payment provider'
                 ], 502);
             }
 
-            return response()->json($response);
-        } catch (\Exception $e) {
-            Log::error('Flutterwave initiatePayment error', ['error' => $e->getMessage()]);
             return response()->json([
+                'status' => 'success',
+                'message' => 'Payment initiated successfully',
+                'data' => $response
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Flutterwave initiatePayment error', [
+                'error' => $e->getMessage(),
+                'payload' => $payload,
+                'user_id' => $payer?->id
+            ]);
+            
+            // Update payment status to failed
+            $payment = Payment::where('tx_ref', $txRef)->first();
+            if ($payment) {
+                $payment->update(['status' => 'failed']);
+            }
+            
+            return response()->json([
+                'status' => 'error',
                 'message' => 'Failed to initiate payment',
                 'error' => $e->getMessage(),
             ], 500);
@@ -95,12 +112,21 @@ class PaymentController extends Controller
         $status = $request->query('status');
         $transactionId = $request->query('transaction_id');
 
+        Log::info('Payment callback received', [
+            'tx_ref' => $txRef,
+            'status' => $status,
+            'transaction_id' => $transactionId,
+            'all_params' => $request->all()
+        ]);
+
         if (!$txRef) {
+            Log::error('Payment callback missing tx_ref', ['request' => $request->all()]);
             return response()->json(['message' => 'Missing tx_ref'], 400);
         }
 
         $payment = Payment::where('tx_ref', $txRef)->first();
         if (!$payment) {
+            Log::error('Payment callback - payment not found', ['tx_ref' => $txRef]);
             return response()->json(['message' => 'Payment not found'], 404);
         }
 
@@ -122,11 +148,11 @@ class PaymentController extends Controller
                         $payment->order->update(['payment_status' => 'paid']);
                     }
 
-                    return response()->json([
+                    // Redirect to payment result page
+                    return redirect()->route('payment.result', [
                         'status' => 'success',
                         'message' => 'Payment verified successfully',
-                        'tx_ref' => $txRef,
-                        'order_id' => $payment->order_id
+                        'tx_ref' => $txRef
                     ]);
                 }
 
@@ -137,11 +163,11 @@ class PaymentController extends Controller
                     $payment->order->update(['payment_status' => 'failed']);
                 }
 
-                return response()->json([
+                return redirect()->route('payment.result', [
                     'status' => 'failed',
                     'message' => 'Payment verification failed',
                     'tx_ref' => $txRef
-                ], 400);
+                ]);
             }
 
             if ($status === 'cancelled') {
@@ -152,7 +178,7 @@ class PaymentController extends Controller
                     $payment->order->update(['payment_status' => 'cancelled']);
                 }
 
-                return response()->json([
+                return redirect()->route('payment.result', [
                     'status' => 'cancelled',
                     'message' => 'Payment cancelled',
                     'tx_ref' => $txRef
@@ -167,7 +193,7 @@ class PaymentController extends Controller
                 $payment->order->update(['payment_status' => $status === 'failed' ? 'failed' : 'pending']);
             }
 
-            return response()->json([
+            return redirect()->route('payment.result', [
                 'status' => $status ?? 'failed',
                 'message' => 'Payment updated',
                 'tx_ref' => $txRef
@@ -175,11 +201,11 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             Log::error('Flutterwave verifyTransaction error', ['error' => $e->getMessage()]);
 
-            return response()->json([
+            return redirect()->route('payment.result', [
                 'status' => 'error',
                 'message' => 'Callback processing failed: ' . $e->getMessage(),
                 'tx_ref' => $txRef
-            ], 500);
+            ]);
         }
     }
     

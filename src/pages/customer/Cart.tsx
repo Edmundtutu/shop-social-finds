@@ -83,11 +83,14 @@ const Cart: React.FC = () => {
       // eslint-disable-next-line no-console
       console.log(`Order with payment initiated successfully for shop ${variables.shop_id}!`, data);
       console.log('Full API response:', data);
-      console.log('Payment URL:', data.payment_url);
+      
+      // Extract payment URL from the response
+      const paymentUrl = data.payment_url || data.data?.link || data.data?.data?.link;
+      console.log('Payment URL:', paymentUrl);
 
-      if (data.payment_url) {
+      if (paymentUrl) {
         // Use functional updates to ensure proper state updates
-        setPaymentUrl(data.payment_url);
+        setPaymentUrl(paymentUrl);
         setShowModal(true);
         toast({
           title: 'Payment initiated!',
