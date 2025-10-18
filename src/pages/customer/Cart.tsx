@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import PaymentModal from '@/components/customer/PayModal';
+import MomoPaymentModal from '@/components/customer/MomoPaymentModal';
 import { 
   Trash2, 
   Plus, 
@@ -21,12 +22,13 @@ import {
   Tag,
   Percent,
   Package,
-  PackagePlus
+  PackagePlus,
+  Smartphone
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
-import { createOrderWithPayment } from '@/services/orderService';
+import { createOrderWithPayment, createOrderWithUnifiedPayment } from '@/services/orderService';
 import type { CreateOrderPayload, CreateOrderWithPaymentResponse } from '@/types/orders';
 import { useAuth } from '@/context/AuthContext';
 
@@ -69,33 +71,59 @@ const Cart: React.FC = () => {
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'mobilemoneyuganda'>('mobilemoneyuganda');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'mobilemoneyuganda' | 'momo'>('mobilemoneyuganda');
   const [customerEmail, setCustomerEmail] = useState(user?.email || '');
   const [customerName, setCustomerName] = useState(user?.name || '');
+  const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
 
   // handling payments 
   const [paymentUrl, setPaymentUrl] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  
+  // MoMo payment state
+  const [showMomoModal, setShowMomoModal] = useState(false);
+  const [momoReferenceId, setMomoReferenceId] = useState<string | null>(null);
+  const [momoAmount, setMomoAmount] = useState(0);
+  const [momoPayerNumber, setMomoPayerNumber] = useState('');
 
-  const { mutateAsync: placeOrderWithPayment, isPending: isProcessingOrder } = useMutation<CreateOrderWithPaymentResponse, any, CreateOrderPayload>({
-    mutationFn: createOrderWithPayment,
+  const { mutateAsync: placeOrderWithUnifiedPayment, isPending: isProcessingOrder } = useMutation<CreateOrderWithPaymentResponse, any, CreateOrderPayload>({
+    mutationFn: createOrderWithUnifiedPayment,
     onSuccess: (data, variables) => {
-      // Extract payment URL from the response
-      const paymentUrl = data.payment_url 
-
-      if (paymentUrl) {
-        // Use functional updates to ensure proper state updates
-        setPaymentUrl(paymentUrl);
-        setShowModal(true);
-        toast({
-          title: 'Payment initiated!',
-          description: 'Please complete your payment below.',
-        });
+      // Handle MoMo payment flow
+      if (variables.payment_method === 'momo') {
+        const referenceId = data.payment_data?.reference_id;
+        if (referenceId) {
+          setMomoReferenceId(referenceId);
+          setMomoAmount(finalTotal);
+          setMomoPayerNumber(customerPhone);
+          setShowMomoModal(true);
+          toast({
+            title: 'MoMo payment initiated!',
+            description: 'Please complete payment on your mobile device.',
+          });
+        } else {
+          toast({
+            title: 'MoMo payment failed',
+            description: 'Failed to get payment reference. Please try again.',
+            variant: 'destructive',
+          });
+        }
       } else {
-        toast({
-          title: 'Order created successfully!',
-          description: 'Your order has been placed and payment is being processed.',
-        });
+        // Handle Flutterwave payment flow
+        const paymentUrl = data.payment_url;
+        if (paymentUrl) {
+          setPaymentUrl(paymentUrl);
+          setShowModal(true);
+          toast({
+            title: 'Payment initiated!',
+            description: 'Please complete your payment below.',
+          });
+        } else {
+          toast({
+            title: 'Order created successfully!',
+            description: 'Your order has been placed and payment is being processed.',
+          });
+        }
       }
     },
     onError: (error: any, variables) => {
@@ -130,6 +158,16 @@ const Cart: React.FC = () => {
       toast({
         title: 'Delivery address required',
         description: 'Please enter your delivery address',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate MoMo payment fields
+    if (paymentMethod === 'momo' && !customerPhone.trim()) {
+      toast({
+        title: 'Phone number required',
+        description: 'Please provide your phone number for MoMo payment',
         variant: 'destructive',
       });
       return;
@@ -173,19 +211,23 @@ const Cart: React.FC = () => {
         payment_method: paymentMethod,
         customer_email: customerEmail,
         customer_name: customerName,
+        customer_phone: customerPhone,
       };
 
       return payload;
     });
 
-    const orderCreationPromises = payloads.map((p) => placeOrderWithPayment(p));
-
+    // Use unified payment endpoint for all payment methods
     try {
+      const orderCreationPromises = payloads.map((p) => placeOrderWithUnifiedPayment(p));
       await Promise.all(orderCreationPromises);
-      toast({
-        title: 'Orders placed successfully!',
-        description: 'Your orders have been created and payment has been initiated.',
-      });
+      
+      if (paymentMethod !== 'momo') {
+        toast({
+          title: 'Orders placed successfully!',
+          description: 'Your orders have been created and payment has been initiated.',
+        });
+      }
     } catch (error) {
       // Errors handled in onError; keep catch to avoid unhandled rejections
       // eslint-disable-next-line no-console
@@ -227,6 +269,24 @@ const Cart: React.FC = () => {
               clearCart();
             }
           }}
+        />
+      )}
+
+      {/* MoMo Payment Modal */}
+      {showMomoModal && momoReferenceId && (
+        <MomoPaymentModal
+          isOpen={showMomoModal}
+          onClose={() => setShowMomoModal(false)}
+          onPaymentComplete={(success, referenceId) => {
+            setShowMomoModal(false);
+            setMomoReferenceId(null);
+            if (success) {
+              clearCart();
+            }
+          }}
+          referenceId={momoReferenceId}
+          amount={momoAmount}
+          payerNumber={momoPayerNumber}
         />
       )}
 
@@ -603,12 +663,37 @@ const Cart: React.FC = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="customer_phone">Phone Number</Label>
+                <input
+                  id="customer_phone"
+                  type="tel"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your phone number (e.g., 256700123456)"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  required={paymentMethod === 'momo'}
+                />
+                {paymentMethod === 'momo' && (
+                  <p className="text-xs text-muted-foreground">
+                    Required for MoMo payment. Use format: 256XXXXXXXXX
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label>Payment Method</Label>
-                <RadioGroup value={paymentMethod} onValueChange={(value: 'card' | 'mobilemoneyuganda') => setPaymentMethod(value)}>
+                <RadioGroup value={paymentMethod} onValueChange={(value: 'card' | 'mobilemoneyuganda' | 'momo') => setPaymentMethod(value)}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="mobilemoneyuganda" id="mobilemoney" />
                     <Label htmlFor="mobilemoney" className="flex items-center gap-2">
-                      <span>Mobile Money Uganda</span>
+                      <span>Mobile Money Uganda (Flutterwave)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="momo" id="momo" />
+                    <Label htmlFor="momo" className="flex items-center gap-2">
+                      <Smartphone className="h-4 w-4" />
+                      <span>Pay with MoMo</span>
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -624,9 +709,20 @@ const Cart: React.FC = () => {
                 className="w-full" 
                 size="lg"
                 onClick={handleCheckout}
-                disabled={isProcessingOrder || (deliveryType === 'delivery' && !deliveryAddress.trim()) || !customerEmail.trim() || !customerName.trim()}
+                disabled={
+                  isProcessingOrder ||
+                  (deliveryType === 'delivery' && !deliveryAddress.trim()) || 
+                  !customerEmail.trim() || 
+                  !customerName.trim() ||
+                  (paymentMethod === 'momo' && !customerPhone.trim())
+                }
               >
-                {isProcessingOrder ? 'Processing...' : `Pay & Place Order - UGX ${finalTotal.toLocaleString()}`}
+                {isProcessingOrder 
+                  ? 'Processing...' 
+                  : paymentMethod === 'momo' 
+                    ? `Pay with MoMo - UGX ${finalTotal.toLocaleString()}`
+                    : `Pay & Place Order - UGX ${finalTotal.toLocaleString()}`
+                }
               </Button>
             </CardContent>
           </Card>

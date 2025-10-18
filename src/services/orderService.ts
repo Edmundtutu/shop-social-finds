@@ -21,6 +21,18 @@ export const createOrderWithPayment = async (orderData: CreateOrderPayload): Pro
   return response.data as unknown as CreateOrderWithPaymentResponse;
 };
 
+export const createOrderWithUnifiedPayment = async (orderData: CreateOrderPayload): Promise<CreateOrderWithPaymentResponse> => {
+  const response = await api.post<ApiResponse<CreateOrderWithPaymentResponse>>(`${apiVersion}/orders/with-unified-payment`, orderData);
+  
+  // Handle both old and new response formats
+  if (response.data.data) {
+    return response.data.data;
+  }
+  
+  // Fallback for direct response format
+  return response.data as unknown as CreateOrderWithPaymentResponse;
+};
+
 export const getOrders = async (): Promise<Order[]> => {
   const response = await api.get<ApiResponse<Order[]>>(`${apiVersion}/orders`);
   return (response.data as any)?.data ?? response.data;

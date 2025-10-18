@@ -26,9 +26,10 @@ export interface CreateOrderPayload {
   delivery_lng: number;
   notes?: string;
   // Payment fields
-  payment_method?: 'card' | 'mobilemoneyuganda';
+  payment_method?: 'card' | 'mobilemoneyuganda' | 'momo';
   customer_email: string;
   customer_name: string;
+  customer_phone?: string;
 }
 
 export interface OrderItem {

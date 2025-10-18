@@ -17,13 +17,21 @@ class Payment extends Model
         'payee_id',
         'order_id',
         'tx_ref',
+        'provider',
+        'reference_id',
+        'external_id',
+        'payer_number',
         'amount',
+        'currency',
         'status',
         'payment_method',
+        'reason',
+        'raw_response',
     ];
 
     protected $casts = [
         'amount' => 'integer',
+        'raw_response' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

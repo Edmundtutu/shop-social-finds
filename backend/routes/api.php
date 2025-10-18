@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\Order;
 use App\Models\Subaccount;
 use Illuminate\Http\Request;
+use App\Services\MomoService;
 use Illuminate\Support\Facades\Log;
 use App\Services\FlutterwaveService;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Api\V1\OrderHandlers\PaymentController;
 use App\Http\Controllers\Api\V1\OrderHandlers\ProductController;
 use App\Http\Controllers\Api\V1\PostHandlers\CommentLikeController;
 use App\Http\Controllers\Api\V1\PostHandlers\PostCommentController;
+use App\Http\Controllers\Api\V1\OrderHandlers\PayWithMomoController;
 use App\Http\Controllers\Api\V1\ShopHandlers\Inventory\AddonController;
 use App\Http\Controllers\Api\V1\ShopHandlers\Inventory\CategoryController;
 use App\Http\Controllers\Api\V1\ShopHandlers\Inventory\InventoryController;
@@ -83,11 +85,15 @@ Route::prefix('v1')->group(function () {
     // Atomic order creation with payment
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders/with-payment', [OrderController::class, 'storeWithPayment']);
+        Route::post('/orders/with-unified-payment', [OrderController::class, 'storeWithUnifiedPayment']);
     });
 
     // Payment routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payments/pay', [PaymentController::class, 'pay']);
+        // MoMo collection endpoints
+        Route::post('/momo/initiate', [PayWithMomoController::class, 'initiatePayment']);
+        Route::get('/momo/status/{referenceId}', [PayWithMomoController::class, 'checkStatus']);
     });
 
     // Order payment routes
@@ -237,6 +243,45 @@ Route::middleware('auth:sanctum')->group(function () {
         return $paymentController->pay($mockRequest, $flwService);
 
     });
+});
+// Test Routes for Payment by Momo
+Route::middleware('auth:sanctum')->group(function (){
+    // MoMo collection endpoints
+    Route::post('test-momo-initiate-payment',function(Request $request){
+         // Extract the first Order from the login user
+         $test_order = Order::whereHas('shop', function ($query) {
+            $query->where('id', '01k2cdnvdtrz2gn6w2gjchd74w');  // Orders from Jane Vendor's shop
+        })
+        ->where('user_id', $request->user()->id)
+        ->first();
+    
+        if (!$test_order) {
+            return response()->json([
+                'error' => 'No order found for this user',
+                'user' => $request->user()
+            ], 404);
+        }
+    
+        $test_vendor = User::findOrFail($test_order->shop->owner_id);
+        $test_customer_number = $request->user()->phone ?? !$request['number'];
+        
+        $test_data = [
+             'vendor_id'=>$test_vendor->id,
+             'payer_number' => $test_customer_number,
+             'amount'=> $request['amount'],
+             'order_id'=>$test_order->id,
+        ];
+
+        $mockRequest = new Request($test_data);
+        // attach authenticated user to the mock request
+        $mockRequest->setUserResolver(function () use ($request) {
+            return $request->user();
+        });
+        $momo = app(MomoService::class);
+        $payWithMomoController = new PayWithMomoController($momo);
+        return $payWithMomoController->initiatePayment($mockRequest);
+    });
+    Route::get('test-momo-status/{referenceId}', [PayWithMomoController::class, 'checkStatus']);
 });
 
 // Add to backend/routes/api.php

@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\FlutterwaveService;
+use App\Services\MomoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -150,7 +151,7 @@ class OrderController extends Controller
             }
 
             // Create payment record
-            $txRef = 'IMENU' . uniqid();
+            $txRef = 'TXF_' . uniqid();
             $paymentMethod = $paymentValidation['payment_method'] ?? 'mobilemoneyuganda';
 
             $payment = $order->payment()->create([
@@ -193,6 +194,197 @@ class OrderController extends Controller
                 'payment_url' => $paymentResponse['data']['link'] ?? null,
                 'payment_data' => $paymentResponse,
             ];
+        });
+
+        return response()->json([
+            'data' => [
+                'order' => new OrderResource($result['order']->load(['items.product', 'shop', 'payment'])),
+                'payment_url' => $result['payment_url'],
+                'payment_data' => $result['payment_data'],
+            ],
+            'message' => 'Order created and payment initiated successfully',
+            'status' => 201,
+        ], 201);
+    }
+
+    /**
+     * Create order with unified payment initiation (Flutterwave or MoMo)
+     */
+    public function storeWithUnifiedPayment(Request $request, FlutterwaveService $flw, MomoService $momo)
+    {
+        $this->authorize('create', Order::class);
+
+        // Validate order fields
+        $orderValidation = $request->validate([
+            'shop_id' => 'required|string|exists:shops,id',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|string|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.base_price' => 'nullable|numeric|min:0',
+            'items.*.add_ons' => 'nullable|array',
+            'items.*.add_ons.*.product_id' => 'required|string|exists:products,id',
+            'items.*.add_ons.*.quantity' => 'required|integer|min:1',
+            'items.*.add_ons.*.original_price' => 'required|numeric|min:0',
+            'items.*.add_ons.*.discounted_price' => 'required|numeric|min:0',
+            'delivery_address' => 'required|string|max:500',
+            'delivery_lat' => 'required|numeric',
+            'delivery_lng' => 'required|numeric',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        // Validate payment fields
+        $paymentValidation = $request->validate([
+            'customer_email' => 'required|email',
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'nullable|string|max:20',
+            'payment_method' => 'required|in:card,mobilemoneyuganda,momo',
+        ]);
+
+        $result = DB::transaction(function () use ($orderValidation, $paymentValidation, $flw, $momo) {
+            // Create the order
+            $order = Order::create([
+                'user_id' => Auth::id(),
+                'shop_id' => $orderValidation['shop_id'],
+                'delivery_address' => $orderValidation['delivery_address'],
+                'delivery_lat' => $orderValidation['delivery_lat'],
+                'delivery_lng' => $orderValidation['delivery_lng'],
+                'notes' => $orderValidation['notes'] ?? null,
+                'total' => 0, // Will be calculated next
+                'status' => 'pending',
+                'payment_status' => 'pending',
+            ]);
+
+            $total = 0;
+            foreach ($orderValidation['items'] as $item) {
+                $product = Product::findOrFail($item['product_id']);
+                $basePrice = $item['base_price'] ?? $product->price;
+
+                // compute add-ons total per main item unit
+                $addOnsTotal = 0;
+                if (!empty($item['add_ons'])) {
+                    foreach ($item['add_ons'] as $addOn) {
+                        $addOnsTotal += ($addOn['discounted_price'] * $addOn['quantity']);
+                    }
+                }
+
+                $lineTotal = ($basePrice + $addOnsTotal) * $item['quantity'];
+
+                $order->items()->create([
+                    'product_id' => $product->id,
+                    'quantity' => $item['quantity'],
+                    'price' => $lineTotal,
+                ]);
+
+                $total += $lineTotal;
+            }
+
+            $order->update(['total' => $total]);
+
+            // Get vendor
+            $vendor = User::findOrFail($order->shop->owner_id);
+
+            $paymentMethod = $paymentValidation['payment_method'];
+
+            if ($paymentMethod === 'momo') {
+                // Handle MoMo payment
+                if (empty($paymentValidation['customer_phone'])) {
+                    throw new \Exception('Phone number is required for MoMo payment');
+                }
+
+                $txRef = 'TXM_' . uniqid();
+                
+                $payment = $order->payment()->create([
+                    'payer_id' => $order->user_id,
+                    'payee_id' => $vendor->id,
+                    'tx_ref' => $txRef,
+                    'amount' => (int) ($order->total),
+                    'status' => 'pending',
+                    'payment_method' => 'mtn_momo_collection',
+                    'provider' => 'momo',
+                    'payer_number' => $paymentValidation['customer_phone'],
+                    'currency' => 'UGX',
+                ]);
+
+                // Initiate MoMo payment
+                $referenceId = $momo->requestToPay(
+                    $paymentValidation['customer_phone'],
+                    (int) $order->total,
+                    $txRef,
+                    [
+                        'payer_id' => $order->user_id,
+                        'payee_id' => $vendor->id,
+                        'order_id' => $order->id,
+                        'currency' => 'UGX',
+                    ]
+                );
+
+                // Update payment with reference ID
+                $payment->update(['reference_id' => $referenceId]);
+
+                return [
+                    'order' => $order->load(['items.product', 'shop', 'payment']),
+                    'payment_url' => null,
+                    'payment_data' => [
+                        'reference_id' => $referenceId,
+                        'status' => 'pending',
+                        'payment_method' => 'momo',
+                    ],
+                ];
+
+            } else {
+                // Handle Flutterwave payment (existing logic)
+                $subaccount = $vendor->subaccount_relation;
+
+                if (!$subaccount) {
+                    throw new \Exception('Vendor has no payout subaccount configured.');
+                }
+
+                // Create payment record
+                $txRef = 'TXF_' . uniqid();
+
+                $payment = $order->payment()->create([
+                    'payer_id' => $order->user_id,
+                    'payee_id' => $vendor->id,
+                    'tx_ref' => $txRef,
+                    'amount' => (int) ($order->total),
+                    'status' => 'pending',
+                    'payment_method' => $paymentMethod,
+                    'provider' => 'flutterwave',
+                    'currency' => 'UGX',
+                ]);
+
+                // Initiate payment with Flutterwave
+                $payload = [
+                    'tx_ref' => $txRef,
+                    'amount' => (int) ($order->total),
+                    'currency' => 'UGX',
+                    'redirect_url' => route('payment.callback'),
+                    'customer' => [
+                        'email' => $paymentValidation['customer_email'],
+                        'name' => $paymentValidation['customer_name'],
+                    ],
+                    'payment_options' => $paymentMethod,
+                    'subaccounts' => [
+                        [
+                            'id' => $subaccount->subaccount_id,
+                            'transaction_charge_type' => 'percentage',
+                            'transaction_charge' => (int) $subaccount->split_value_in_percentage,
+                        ],
+                    ],
+                ];
+
+                $paymentResponse = $flw->initiatePayment($payload);
+
+                if (!is_array($paymentResponse)) {
+                    throw new \Exception('Failed to initiate payment with Flutterwave');
+                }
+
+                return [
+                    'order' => $order->load(['items.product', 'shop', 'payment']),
+                    'payment_url' => $paymentResponse['data']['link'] ?? null,
+                    'payment_data' => $paymentResponse,
+                ];
+            }
         });
 
         return response()->json([
@@ -317,7 +509,7 @@ class OrderController extends Controller
             ], 422);
         }
 
-        $txRef = 'IMENU' . uniqid();
+        $txRef = 'TXF_' . uniqid();
         $paymentMethod = $validated['payment_method'] ?? 'mobilemoneyuganda';
 
         // Create a pending payment record
