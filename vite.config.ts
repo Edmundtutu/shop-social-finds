@@ -11,11 +11,14 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+      },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Foody',
-        short_name: 'Foody',
-        description: 'Social commerce',
+        name: 'Food Ordering App',
+        short_name: 'FoodApp',
+        description: 'Order food from your favorite restaurants',
         theme_color: '#00000000',
         icons: [
           {
