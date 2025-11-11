@@ -74,9 +74,16 @@ export default {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        // Base radius is now 1rem (from CSS var --radius)
+        lg: `var(--radius)`,
+        // md is now 0.5rem (calc(1rem - 0.5rem))
+        md: `calc(var(--radius) - 0.5rem)`,
+        // sm is now 0.25rem (calc(1rem - 0.75rem))
+        sm: `calc(var(--radius) - 0.75rem)`,
+
+        // Add larger playful radius classes:
+        "xl": "1.5rem",
+        "2xl": "2.5rem",
       },
       keyframes: {
         "accordion-down": {
@@ -105,3 +112,4 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
