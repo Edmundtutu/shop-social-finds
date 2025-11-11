@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star, MapPin, Phone, ArrowLeft } from 'lucide-react';
+import RestaurantHours from '@/components/features/RestaurantHours';
 import { useQuery } from '@tanstack/react-query';
 import { shopService } from '@/services/shopService';
 import { Product, Shop } from '@/types';
@@ -136,8 +137,16 @@ const ShopDetails: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Restaurant Hours */}
+      {shop.hours && (
+        <div className="mb-6">
+          <RestaurantHours hours={shop.hours} />
+        </div>
+      )}
+
       {/* Products List */}
-      <h3 className="text-xl font-semibold mb-4">Products</h3>
+      <h3 className="text-xl font-semibold mb-4">Menu</h3>
       {loadingProducts ? (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
