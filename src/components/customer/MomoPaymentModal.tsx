@@ -2,19 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Smartphone, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  Smartphone,
+  CheckCircle,
+  XCircle,
+  Clock,
   AlertCircle,
   Loader2
 } from 'lucide-react';
 import { checkMomoStatus } from '@/services/momoService';
+import logoUrl from '@/assets/images/momologo.jpg';
 
 interface MomoPaymentModalProps {
   isOpen: boolean;
@@ -25,13 +23,13 @@ interface MomoPaymentModalProps {
   payerNumber: string;
 }
 
-export default function MomoPaymentModal({ 
-  isOpen, 
-  onClose, 
-  onPaymentComplete, 
-  referenceId, 
-  amount, 
-  payerNumber 
+export default function MomoPaymentModal({
+  isOpen,
+  onClose,
+  onPaymentComplete,
+  referenceId,
+  amount,
+  payerNumber
 }: MomoPaymentModalProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,7 +39,7 @@ export default function MomoPaymentModal({
   const [error, setError] = useState<string | null>(null);
   const [rawResponse, setRawResponse] = useState<any>(null);
 
-  const maxPollingAttempts = 30; // 30 attempts * 5 seconds = 2.5 minutes
+  const maxPollingAttempts = 30;
 
   useEffect(() => {
     if (!isOpen || !referenceId) return;
@@ -52,8 +50,7 @@ export default function MomoPaymentModal({
     const pollStatus = async () => {
       try {
         const response = await checkMomoStatus(referenceId);
-        
-        // Check if response exists and has the expected structure
+
         if (!response || typeof response !== 'object') {
           console.warn('Invalid response from MoMo status check:', response);
           if (pollingCount >= maxPollingAttempts) {
@@ -114,19 +111,17 @@ export default function MomoPaymentModal({
           pollStatus();
           return newCount;
         });
-      }, 5000); // Poll every 5 seconds
+      }, 5000);
 
-      // Initial poll
       pollStatus();
     }
 
-    // Timeout after 5 minutes
     timeoutId = setTimeout(() => {
       setIsPolling(false);
       if (status === 'pending') {
         setError('Payment verification timeout');
       }
-    }, 300000); // 5 minutes
+    }, 300000);
 
     return () => {
       if (intervalId) clearInterval(intervalId);
@@ -139,22 +134,22 @@ export default function MomoPaymentModal({
   const getStatusIcon = () => {
     switch (status) {
       case 'successful':
-        return <CheckCircle className="h-8 w-8 text-green-500" />;
+        return <CheckCircle className="h-12 w-12 text-white" />;
       case 'failed':
-        return <XCircle className="h-8 w-8 text-red-500" />;
+        return <XCircle className="h-12 w-12 text-white" />;
       default:
-        return <Clock className="h-8 w-8 text-yellow-500" />;
+        return <Loader2 className="h-12 w-12 text-white animate-spin" />;
     }
   };
 
-  const getStatusColor = () => {
+  const getStatusBgColor = () => {
     switch (status) {
       case 'successful':
-        return 'bg-green-50 border-green-200';
+        return 'bg-green-500';
       case 'failed':
-        return 'bg-red-50 border-red-200';
+        return 'bg-red-500';
       default:
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-[#FFCB05]';
     }
   };
 
@@ -165,73 +160,82 @@ export default function MomoPaymentModal({
       case 'failed':
         return 'Payment Failed';
       default:
-        return 'Awaiting Payment';
+        return 'Processing Payment';
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md overflow-hidden shadow-2xl border-0">
+        {/* MTN MoMo Header */}
+        <CardHeader className={`${getStatusBgColor()} text-white p-6 transition-colors duration-300`}>
           <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <Smartphone className="h-8 w-8 text-primary" />
+            {/* MTN MoMo Logo - Circular without white bg */}
+            <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center">
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <div>
-              <CardTitle>MTN MoMo Payment</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Complete payment on your mobile device
+            <div className="text-center">
+              <h2 className="text-2xl font-bold">{getStatusText()}</h2>
+              <p className="text-sm opacity-90 mt-1">
+                {status === 'pending' ? 'Please complete the payment on your phone' :
+                  status === 'successful' ? 'Your payment has been processed' :
+                    'Transaction could not be completed'}
               </p>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="p-6 space-y-6">
           {/* Payment Details */}
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Amount:</span>
-              <span className="font-medium">UGX {amount.toLocaleString()}</span>
+          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 font-medium">Amount</span>
+              <span className="text-xl font-bold text-gray-900">UGX {amount.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Phone:</span>
-              <span className="font-medium">{payerNumber}</span>
+            <div className="border-t border-gray-200"></div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Phone Number</span>
+              <span className="font-semibold text-gray-900">{payerNumber}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Reference:</span>
-              <span className="font-mono text-xs">{referenceId.slice(0, 8)}...</span>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Reference ID</span>
+              <span className="font-mono text-xs text-gray-700 bg-gray-200 px-2 py-1 rounded">
+                {referenceId.slice(0, 12)}...
+              </span>
             </div>
           </div>
 
-          {/* Status Display */}
-          <div className={`p-4 rounded-lg border ${getStatusColor()}`}>
-            <div className="flex items-center gap-3">
-              {getStatusIcon()}
-              <div className="flex-1">
-                <p className="font-medium">{getStatusText()}</p>
-                {isPolling && status === 'pending' && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <p className="text-xs text-muted-foreground">
-                      Checking payment status... ({pollingCount}/{maxPollingAttempts})
-                    </p>
-                  </div>
-                )}
+          {/* Status Progress */}
+          {status === 'pending' && isPolling && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Verifying payment...</span>
+                <span className="text-[#FFCB05] font-semibold">{pollingCount}/{maxPollingAttempts}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-[#FFCB05] h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(pollingCount / maxPollingAttempts) * 100}%` }}
+                ></div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Instructions */}
           {status === 'pending' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                <Smartphone className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
-                  <p className="font-medium text-blue-800 mb-1">Payment Instructions:</p>
-                  <ol className="text-blue-700 space-y-1 list-decimal list-inside">
-                    <li>Check your phone for a MoMo prompt</li>
-                    <li>Enter your MoMo PIN to confirm payment</li>
-                    <li>Wait for confirmation (this may take a few moments)</li>
+                  <p className="font-semibold text-blue-900 mb-2">Complete Your Payment:</p>
+                  <ol className="text-blue-800 space-y-1.5 list-decimal list-inside">
+                    <li>Check your phone ({payerNumber}) for the MoMo prompt</li>
+                    <li>Enter your MoMo PIN to authorize the payment</li>
+                    <li>Wait for the confirmation message</li>
                   </ol>
                 </div>
               </div>
@@ -240,12 +244,12 @@ export default function MomoPaymentModal({
 
           {/* Error Display */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
               <div className="flex items-start gap-3">
-                <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
-                  <p className="font-medium text-red-800 mb-1">Payment Error:</p>
-                  <p className="text-red-700">{error}</p>
+                  <p className="font-semibold text-red-900 mb-1">Payment Error</p>
+                  <p className="text-red-800">{error}</p>
                 </div>
               </div>
             </div>
@@ -253,37 +257,56 @@ export default function MomoPaymentModal({
 
           {/* Success Message */}
           {status === 'successful' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
               <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
-                  <p className="font-medium text-green-800 mb-1">Payment Confirmed!</p>
-                  <p className="text-green-700">Your order has been successfully paid for.</p>
+                  <p className="font-semibold text-green-900 mb-1">Payment Confirmed!</p>
+                  <p className="text-green-800">Your transaction has been successfully completed. You will be redirected shortly.</p>
                 </div>
               </div>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             {status === 'successful' ? (
-              <Button className="flex-1" onClick={() => onPaymentComplete(true, referenceId)}>
+              <Button
+                className="flex-1 bg-[#FFCB05] hover:bg-[#E6B800] text-black font-semibold h-12"
+                onClick={() => onPaymentComplete(true, referenceId)}
+              >
                 Continue
               </Button>
             ) : status === 'failed' ? (
               <>
-                <Button variant="outline" className="flex-1" onClick={onClose}>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50"
+                  onClick={onClose}
+                >
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={() => window.location.reload()}>
+                <Button
+                  className="flex-1 bg-[#FFCB05] hover:bg-[#E6B800] text-black font-semibold h-12"
+                  onClick={() => window.location.reload()}
+                >
                   Try Again
                 </Button>
               </>
             ) : (
-              <Button variant="outline" className="flex-1" onClick={onClose}>
+              <Button
+                variant="outline"
+                className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-50"
+                onClick={onClose}
+              >
                 Cancel Payment
               </Button>
             )}
+          </div>
+
+          {/* Footer Branding */}
+          <div className="text-center pt-2 border-t border-gray-200">
+            <p className="text-xs text-gray-500">Powered by <span className="font-semibold text-[#FFCB05]">MTN Mobile Money</span></p>
           </div>
         </CardContent>
       </Card>

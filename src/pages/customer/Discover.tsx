@@ -32,14 +32,14 @@ const Discover: React.FC = () => {
 
   const categories = [
     'All',
-    'Electronics',
-    'Fashion',
-    'Food',
-    'Books',
-    'Sports',
-    'Beauty',
-    'Furniture',
-    'Accessories'
+    'Staples',
+    'Stews',
+    'Core Carbo',
+    'Delicacies',
+    'Fast Food',
+    'Protein',
+    'Desserts and fruit',
+    'Greens and Sides',
   ];
 
   const { data: productsResponse, isLoading, error } = useQuery({
