@@ -42,11 +42,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
     });
   };
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    addItem(product, 1, product.shop);
-    toast({ title: 'Added to bag', description: `${product.name} has been added to your bag` });
-  };
 
   return (
     <Card className={`group hover:shadow-lg transition-shadow ${className ?? ''}`}>
@@ -109,47 +104,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
-          <div className={`flex items-center justify-between ${showAddButton ? 'xl:flex-col xl:items-start xl:gap-2' : ''}`}>
+          <div className="flex items-center justify-between">
             <span className="text-sm md:text-lg xl:text-sm font-bold">UGX {product.price.toLocaleString()}</span>
-            <div className="flex gap-2">
-              {onRemoveFavorite && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 px-2"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onRemoveFavorite(product.id);
-                  }}
-                >
-                  Remove
-                </Button>
-              )}
-              {showAddButton && (
-                <Button
-                  size="sm"
-                  className="h-6 md:h-8 xl:h-6 xl:w-full px-2 md:px-3 xl:px-2 text-xs xl:text-xs"
-                  onClick={handleAddToCart}
-                  disabled={product.stock === 0}
-                >
-                  <ShoppingCart className="h-3 w-3 md:h-4 md:w-4 xl:h-3 xl:w-3 mr-1" />
-                  <span className="hidden md:inline xl:inline">Add</span>
-                </Button>
-              )}
-            </div>
+            {onRemoveFavorite && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onRemoveFavorite(product.id);
+                }}
+              >
+                Remove
+              </Button>
+            )}
           </div>
-
-          {product.stock < 5 && product.stock > 0 && (
-            <Badge variant="destructive" className="mt-2 text-xs xl:text-xs">
-              Only {product.stock} left
-            </Badge>
-          )}
-
-          {product.stock === 0 && (
-            <Badge variant="secondary" className="mt-2 text-xs xl:text-xs">
-              Out of stock
-            </Badge>
-          )}
         </div>
       </CardContent>
     </Card>

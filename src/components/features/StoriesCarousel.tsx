@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import * as ZuckJs from "zuck.js";
+import Zuck from "zuck.js";
 import "../../../node_modules/zuck.js/dist/zuck.min.css";
 import "../../../node_modules/zuck.js/dist/skins/snapgram.css";
-
-// @ts-ignore - zuck.js doesn't have proper TypeScript definitions
-const Zuck = (ZuckJs as any).default || ZuckJs;
 import { type VendorStories } from '@/data/demoStories';
 import { storyService } from '@/services/storyService';
 import { toast } from 'sonner';
