@@ -32,10 +32,10 @@ const VendorInventory: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Inventory</h1>
+        <h1 className="text-3xl font-bold">Menu</h1>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Add Product
+          Add Dish
         </Button>
       </div>
       
@@ -44,8 +44,8 @@ const VendorInventory: React.FC = () => {
           {!activeShopId ? (
             <>
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No shop found</h3>
-              <p className="text-muted-foreground mb-4">Create a shop to manage inventory.</p>
+              <h3 className="text-lg font-medium mb-2">No restaurant found</h3>
+              <p className="text-muted-foreground mb-4">Create a restaurant to manage your menu.</p>
             </>
           ) : isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -54,8 +54,8 @@ const VendorInventory: React.FC = () => {
           ) : !graph || (graph.nodes?.length ?? 0) + (graph.edges?.length ?? 0) === 0 ? (
             <>
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">Start your inventory map</h3>
-              <p className="text-muted-foreground mb-4">Add nodes and connect them to build your flow.</p>
+              <h3 className="text-lg font-medium mb-2">Start your menu</h3>
+              <p className="text-muted-foreground mb-4">Add dishes and organize your menu.</p>
               <DynamicInventoryFlow shopId={activeShopId} initialGraph={{ nodes: [], edges: [] }} />
             </>
           ) : (

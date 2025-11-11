@@ -240,12 +240,12 @@ const Cart: React.FC = () => {
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
               <ShoppingBag className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h2 className="text-xl font-medium mb-2">Your cart is empty</h2>
+            <h2 className="text-xl font-medium mb-2">Your bag is empty</h2>
             <p className="text-muted-foreground mb-6">
-              Start shopping to add items to your cart
+              Browse restaurants to add dishes to your bag
             </p>
             <Button asChild size="lg">
-              <Link to="/discover">Start Shopping</Link>
+              <Link to="/discover">Browse Restaurants</Link>
             </Button>
           </CardContent>
         </Card>
@@ -289,7 +289,7 @@ const Cart: React.FC = () => {
       {/* Header Section */}
       <div className="text-left space-y-2">
         <p className="text-muted-foreground text-sm sm:text-base">
-          {itemCount} item{itemCount !== 1 ? 's' : ''} from {Object.keys(itemsByShop).length} shop{Object.keys(itemsByShop).length !== 1 ? 's' : ''}
+          {itemCount} item{itemCount !== 1 ? 's' : ''} from {Object.keys(itemsByShop).length} restaurant{Object.keys(itemsByShop).length !== 1 ? 's' : ''}
         </p>
       </div>
 
@@ -381,7 +381,7 @@ const Cart: React.FC = () => {
               ? 'Processing...' 
               : paymentMethod === 'momo' 
                 ? `Pay with MoMo`
-                : `Pay & Place Order`
+                : `Proceed to Payment`
             }
           </Button>
         </div>
@@ -389,10 +389,10 @@ const Cart: React.FC = () => {
         {/* Action Buttons */}
         <div className="flex justify-between gap-3">
           <Button variant="outline" onClick={clearCart} className="flex-1">
-            Clear Cart
+            Clear Bag
           </Button>
           <Button variant="outline" asChild className="flex-1">
-            <Link to="/discover">Continue Shopping</Link>
+            <Link to="/discover">Browse More</Link>
           </Button>
         </div>
 
@@ -477,10 +477,10 @@ const Cart: React.FC = () => {
             
             <div className="flex justify-between items-center">
               <Button variant="outline" onClick={clearCart} size="lg">
-                Clear Cart
+                Clear Bag
               </Button>
               <Button variant="outline" asChild size="lg">
-                <Link to="/discover">Continue Shopping</Link>
+                <Link to="/discover">Browse More</Link>
               </Button>
             </div>
           </div>
@@ -540,7 +540,7 @@ const Cart: React.FC = () => {
                         ? 'Processing...' 
                         : paymentMethod === 'momo' 
                           ? `Pay with MoMo - UGX ${finalTotal.toLocaleString()}`
-                          : `Pay & Place Order - UGX ${finalTotal.toLocaleString()}`
+                          : `Proceed to Payment - UGX ${finalTotal.toLocaleString()}`
                       }
                     </Button>
                     <p className="text-xs text-muted-foreground text-center">
@@ -776,11 +776,11 @@ const OrderSummary: React.FC<any> = ({ total, deliveryFee, finalTotal, itemCount
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Order Summary</CardTitle>
+        <CardTitle>Your Order</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex justify-between">
-          <span>Subtotal ({itemCount} items)</span>
+          <span>Food Subtotal ({itemCount} items)</span>
           <span>UGX {total.toLocaleString()}</span>
         </div>
         
@@ -793,7 +793,7 @@ const OrderSummary: React.FC<any> = ({ total, deliveryFee, finalTotal, itemCount
         
         <div className="border-t pt-4">
           <div className="flex justify-between font-bold text-lg">
-            <span>Total</span>
+            <span>Order Total</span>
             <span>UGX {finalTotal.toLocaleString()}</span>
           </div>
         </div>

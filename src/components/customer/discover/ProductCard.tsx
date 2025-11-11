@@ -38,14 +38,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
     toggleProductFavorite(product);
     toast({
       title: wasFavorited ? 'Removed from favorites' : 'Added to favorites',
-      description: wasFavorited ? 'Product removed from your favorites' : 'Product added to your favorites',
+      description: wasFavorited ? 'Dish removed from your favorites' : 'Dish added to your favorites',
     });
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     addItem(product, 1, product.shop);
-    toast({ title: 'Added to cart', description: `${product.name} has been added to your cart` });
+    toast({ title: 'Added to bag', description: `${product.name} has been added to your bag` });
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import  {Zuck}  from "zuck.js";
+import Zuck from "zuck.js";
 import "../../../node_modules/zuck.js/dist/zuck.min.css";
 import "../../../node_modules/zuck.js/dist/skins/snapgram.css";
 import { type VendorStories } from '@/data/demoStories';
@@ -45,7 +45,7 @@ export default function StoriesCarousel({ stories, onReaction }: StoriesCarousel
           name: vendor.name,
           items: vendor.stories.map((story) => ({
             id: story.id,
-            type: story.media_type,
+            type: story.media_type === 'image' ? 'photo' : 'video' as 'photo' | 'video',
             length: 5,
             src: story.media_url,
             preview: story.media_url,
