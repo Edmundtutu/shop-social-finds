@@ -53,7 +53,7 @@ export const DockedConversationList: React.FC<DockedConversationListProps> = ({
       
       const title = user?.role === 'vendor' 
         ? conversation.user?.name || 'Customer'
-        : conversation.shop?.name || 'Shop';
+        : conversation.shop?.name || 'Restaurant';
       
       const subtitle = typingUsers.length > 0
         ? `${typingUsers.map(t => t.name).join(', ')} ${typingUsers.length === 1 ? 'is' : 'are'} typing...`
@@ -87,6 +87,7 @@ export const DockedConversationList: React.FC<DockedConversationListProps> = ({
         delivery_lng: 0,
         notes: '',
         status: 'pending' as const,
+        payment_status: 'pending' as const,
         created_at: conversation.created_at,
         updated_at: conversation.updated_at,
         shop: conversation.shop,

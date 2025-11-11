@@ -36,15 +36,15 @@ const DesktopSidebar: React.FC = () => {
     { name: 'Discover', href: '/discover', icon: Search },
     { name: 'Map', href: '/map', icon: MapPin },
     { name: 'Favorites', href: '/favorites', icon: Heart },
-    { name: 'Cart', href: '/cart', icon: ShoppingCart, badge: 0 },
+    { name: 'My Bag', href: '/cart', icon: ShoppingCart, badge: 0 },
     { name: 'Profile', href: '/profile', icon: User },
   ];
 
   const vendorNavItems: NavItem[] = [
     { name: 'Dashboard', href: '/vendor/dashboard', icon: BarChart3 },
-    { name: 'Inventory', href: '/vendor/Inventory', icon: Package },
+    { name: 'Menu', href: '/vendor/Inventory', icon: Package },
     { name: 'Orders', href: '/vendor/orders', icon: ShoppingCart },
-    { name: 'Shop Profile', href: '/vendor/profile', icon: Store },
+    { name: 'Restaurant Profile', href: '/vendor/profile', icon: Store },
     { name: 'Account', href: '/vendor/account', icon: User },
   ];
 
@@ -62,7 +62,7 @@ const DesktopSidebar: React.FC = () => {
       {/* Logo */}
       <div className="p-4 xl:p-6 border-b">
         <Link to="/" className="text-xl xl:text-2xl font-bold text-primary">
-          Shopify
+          FoodApp
         </Link>
       </div>
 
@@ -78,7 +78,7 @@ const DesktopSidebar: React.FC = () => {
             <p className="font-medium text-sm truncate">{user.name}</p>
             <p className="text-xs text-muted-foreground truncate">
               {user.role === 'customer' ? 
-                (user.isInfluencer ? 'Influencer' : 'Customer') : 'Vendor'}
+                (user.isInfluencer ? 'Influencer' : 'Customer') : 'Restaurant'}
             </p>
           </div>
         </div>

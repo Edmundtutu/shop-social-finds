@@ -75,13 +75,13 @@ const Home: React.FC = () => {
             <TextCarousel
               className="flex-1 text-muted-foreground text-sm"
               texts={[
-                'Share your shopping experience',
-                'Nearby Restaurants Have nice food!! Read the Post',
-                'What is your location today',
-                'Where will you go for shopping',
-                'Join your friends for a bite',
-                'Pictures of your purchase will guide a friend',
-                'Enjoy your experience with friends',
+                'Discover delicious meals near you',
+                'Nearby restaurants have amazing food! Check it out',
+                'What are you craving today?',
+                'Order your favorite dish now',
+                'Join friends for a delicious meal',
+                'Share your food experience',
+                'Rate your favorite restaurants',
               ]}
               interval={4000}
               transitionDuration={300}
@@ -111,7 +111,7 @@ const Home: React.FC = () => {
                 Start following others to see their posts, or create your first post!
               </p>
               <Button asChild>
-                <Link to="/discover">Discover Products</Link>
+                <Link to="/discover">Discover Dishes</Link>
               </Button>
             </CardContent>
           </Card>

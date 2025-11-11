@@ -32,14 +32,15 @@ const Discover: React.FC = () => {
 
   const categories = [
     'All',
-    'Staples',
-    'Stews',
-    'Core Carbo',
-    'Delicacies',
     'Fast Food',
-    'Protein',
-    'Desserts and fruit',
-    'Greens and Sides',
+    'African',
+    'Asian',
+    'Italian',
+    'Pizza',
+    'Burgers',
+    'Healthy',
+    'Desserts',
+    'Beverages',
   ];
 
   const { data: productsResponse, isLoading, error } = useQuery({
@@ -56,8 +57,8 @@ const Discover: React.FC = () => {
   const handleAddToCart = (product: Product) => {
     addItem(product, 1, product.shop);
     toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
+      title: "Added to bag",
+      description: `${product.name} has been added to your bag`,
     });
   };
 
@@ -66,7 +67,7 @@ const Discover: React.FC = () => {
     toggleProductFavorite(product);
     toast({
       title: wasFavorited ? 'Removed from favorites' : 'Added to favorites',
-      description: wasFavorited ? 'Product removed from your favorites' : 'Product added to your favorites',
+      description: wasFavorited ? 'Dish removed from your favorites' : 'Dish added to your favorites',
     });
   };
 
@@ -77,7 +78,7 @@ const Discover: React.FC = () => {
   const lastPage = (productsResponse as any)?.last_page ?? 1;
 
   if (error) {
-    return <div className="text-center text-red-500">Error loading products.</div>;
+    return <div className="text-center text-red-500">Error loading dishes.</div>;
   }
 
   return (
@@ -88,7 +89,7 @@ const Discover: React.FC = () => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
           <Input
-            placeholder="Search for products, brands, or shops..."
+            placeholder="Search for dishes, cuisines, or restaurants..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 md:pl-12 h-10 md:h-12 text-sm md:text-base"
@@ -114,7 +115,7 @@ const Discover: React.FC = () => {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-xs md:text-sm text-muted-foreground">
-          {totalProducts} products found
+          {totalProducts} dishes found
         </p>
       </div>
 
@@ -134,9 +135,9 @@ const Discover: React.FC = () => {
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                   <Search className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">No products found</h3>
+                <h3 className="text-lg font-medium mb-2">No dishes found</h3>
                 <p className="text-muted-foreground mb-4 text-sm md:text-base">
-                  Try adjusting your search terms or browse different categories
+                  Try adjusting your search terms or browse different cuisines
                 </p>
                 <Button onClick={() => {
                   setSearchQuery('');
