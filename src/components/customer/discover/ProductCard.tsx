@@ -94,18 +94,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
           {showRating && (
             <div className="flex items-center gap-1 md:gap-2 xl:gap-1 mb-2 md:mb-3 xl:mb-2">
-              <div className="flex items-center">
+              <div className="flex items-center justify-between">
                 <Star className="h-3 w-3 md:h-4 md:w-4 xl:h-3 xl:w-3 fill-yellow-400 text-yellow-400" />
                 <span className="text-xs md:text-sm xl:text-xs ml-1">{product.rating}</span>
                 <span className="text-xs text-muted-foreground ml-1 hidden md:inline xl:hidden">
                   ({product.total_reviews})
                 </span>
+                <span className="text-sm md:text-lg xl:text-sm font-bold">UGX {product.price.toLocaleString()}</span>
               </div>
             </div>
           )}
 
           <div className="flex items-center justify-between">
-            <span className="text-sm md:text-lg xl:text-sm font-bold">UGX {product.price.toLocaleString()}</span>
             {onRemoveFavorite && (
               <Button
                 size="sm"
