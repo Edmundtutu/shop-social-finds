@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Star, Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { useFavorites } from '@/context/FavoritesContext';
-import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 
 type ProductCardProps = {
@@ -29,7 +28,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onRemoveFavorite,
 }) => {
   const { isProductFavorited, toggleProductFavorite } = useFavorites();
-  const { addItem } = useCart();
   const { toast } = useToast();
 
   const handleToggleFavorite = (e: React.MouseEvent) => {

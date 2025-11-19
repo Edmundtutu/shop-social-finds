@@ -16,7 +16,9 @@ import {
 import { Product, Review } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { productService } from '@/services/productService';
+import { useToast } from '@/hooks/use-toast';
 import { useFavorites } from '@/context/FavoritesContext';
+import { useCart } from '@/context/CartContext';
 
 const ProductPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +29,8 @@ const ProductPage: React.FC = () => {
   const { isProductFavorited, toggleProductFavorite } = useFavorites();
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [showReviewForm, setShowReviewForm] = useState(false);
-
+  const { addItem } = useCart();
+  const { toast } = useToast();
   const { data: productData, isLoading: loadingProduct } = useQuery({
     enabled: !!id,
     queryKey: ['product', id],
@@ -59,7 +62,10 @@ const ProductPage: React.FC = () => {
   }, [loadingProduct, loadingReviews]);
 
   const handleAddToCart = () => {
-    // TODO: Add to cart via API
+    if (!product) return;
+    if (!product.shop) return;
+    addItem(product, quantity, product.shop);
+    toast({ title: 'Added to cart', description: `${product.name} added to cart.` });
   };
 
   const handleToggleFavorite = () => {
