@@ -140,12 +140,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/test-flutterwave-subaccount', function(Request $request) {
         $flw = new FlutterwaveService();
         $subaccount = $flw->createSubaccount([
-            'business_name' => 'Test Business',
-            'business_email' => 'test@vendor.business',
-            'business_mobile' => '0782673872',
+            'business_name' => $request->user()->name . ' Restaurant',
+            'business_email' => $request->user()->email,
+            'business_mobile' => $request->user()->phone,
             'business_address' => 'Mbarara Uganda',
             'account_bank' => '035',
-            'account_number' => '00000000',
+            'account_number' => $request->user()->phone,
             'split_type' => 'percentage',
             'split_value' => 0.5,  
             'country' => 'CM',
@@ -154,9 +154,9 @@ Route::middleware('auth:sanctum')->group(function () {
             $subaccount = Subaccount::create([
                 'user_id' => $request->user()->id,
                 'subaccount_id' => $subaccount['data']['subaccount_id'],
-                'business_name' => 'Test Business',
+                'business_name' => $request->user()->name . ' Restaurant',
                 'business_email' => $request->user()->email,
-                'business_phone' => '0782673872',
+                'business_phone' => $request->user()->phone,
                 'business_address' => 'Mbarara Uganda',
                 'bank_name' => $subaccount['data']['bank_name'],
                 'bank_code' => $subaccount['data']['account_bank'],
