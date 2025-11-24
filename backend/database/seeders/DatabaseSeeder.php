@@ -11,8 +11,12 @@ use App\Models\Product;
 use App\Models\Review;
 use App\Models\Shop;
 use App\Models\User;
+use App\Models\Subaccount;
+use App\Services\FlutterwaveService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -44,6 +48,117 @@ class DatabaseSeeder extends Seeder
         $allCustomers = $customers->concat([$testCustomer]);
         $allVendors = $vendors->concat([$testVendor]);
         $allUsers = $allCustomers->merge($allVendors);
+
+        // === PHASE 1b: Ensure vendors have Flutterwave subaccounts ===
+        $this->command->info('🏦 Creating vendor subaccounts...');
+
+        $flutterwaveConfig = config('services.flutterwave', []);
+        $shouldCallFlutterwave = (bool) ($flutterwaveConfig['seed_subaccounts'] ?? false);
+        $splitPercentage = (int) ($flutterwaveConfig['seed_split_percentage'] ?? 50);
+        $splitPercentage = max(0, min(100, $splitPercentage));
+        $splitValue = $splitPercentage / 100;
+        $seedBankCode = (string) ($flutterwaveConfig['seed_bank_code'] ?? '035');
+        $seedBankName = (string) ($flutterwaveConfig['seed_bank_name'] ?? 'Stanbic Bank Uganda');
+        $seedCountry = (string) ($flutterwaveConfig['seed_country'] ?? 'UG');
+
+        $flutterwaveService = $shouldCallFlutterwave ? app(FlutterwaveService::class) : null;
+        $subaccountsCreated = 0;
+        $subaccountApiFailures = 0;
+
+        $allVendors->each(function ($vendor) use (
+            $flutterwaveService,
+            $shouldCallFlutterwave,
+            $splitValue,
+            $splitPercentage,
+            $seedBankCode,
+            $seedBankName,
+            $seedCountry,
+            &$subaccountsCreated,
+            &$subaccountApiFailures
+        ) {
+            $businessName = trim($vendor->name . ' Restaurant');
+            $businessEmail = $vendor->email;
+            $businessPhone = preg_replace('/\D+/', '', $vendor->phone ?? '') ?: fake()->numerify('256########');
+            $accountNumber = substr(str_pad($businessPhone, 10, '0', STR_PAD_LEFT), -10);
+            $businessAddress = $vendor->address ?? fake()->address();
+
+            if ($shouldCallFlutterwave && $flutterwaveService) {
+                try {
+                    $response = $flutterwaveService->createSubaccount([
+                        'business_name' => $businessName,
+                        'business_email' => $businessEmail,
+                        'business_mobile' => $businessPhone,
+                        'business_address' => $businessAddress,
+                        'account_bank' => $seedBankCode,
+                        'account_number' => $accountNumber,
+                        'split_type' => 'percentage',
+                        'split_value' => $splitValue,
+                        'country' => $seedCountry,
+                    ]);
+
+                    if (($response['status'] ?? null) === 'success' && isset($response['data'])) {
+                        $data = $response['data'];
+
+                        Subaccount::updateOrCreate(
+                            ['user_id' => $vendor->id],
+                            [
+                                'subaccount_id' => $data['subaccount_id'] ?? 'SA-' . strtoupper(Str::random(10)),
+                                'business_name' => $businessName,
+                                'business_email' => $businessEmail,
+                                'business_phone' => $businessPhone,
+                                'business_address' => $businessAddress,
+                                'bank_name' => $data['bank_name'] ?? $seedBankName,
+                                'bank_code' => $data['account_bank'] ?? $seedBankCode,
+                                'account_number' => $data['account_number'] ?? $accountNumber,
+                                'split_value_in_percentage' => $splitPercentage,
+                            ]
+                        );
+
+                        $subaccountsCreated++;
+                        return;
+                    }
+
+                    $subaccountApiFailures++;
+                    Log::warning('Flutterwave subaccount seeding returned an unexpected response.', [
+                        'vendor_id' => $vendor->id,
+                        'response' => $response,
+                    ]);
+                } catch (\Throwable $exception) {
+                    $subaccountApiFailures++;
+                    Log::error('Flutterwave subaccount seeding failed.', [
+                        'vendor_id' => $vendor->id,
+                        'error' => $exception->getMessage(),
+                    ]);
+                }
+            }
+
+            Subaccount::updateOrCreate(
+                ['user_id' => $vendor->id],
+                [
+                    'subaccount_id' => 'SA-' . strtoupper(Str::random(10)),
+                    'business_name' => $businessName,
+                    'business_email' => $businessEmail,
+                    'business_phone' => $businessPhone,
+                    'business_address' => $businessAddress,
+                    'bank_name' => $seedBankName,
+                    'bank_code' => $seedBankCode,
+                    'account_number' => $accountNumber,
+                    'split_value_in_percentage' => $splitPercentage,
+                ]
+            );
+
+            $subaccountsCreated++;
+        });
+
+        if ($shouldCallFlutterwave && $subaccountApiFailures > 0) {
+            $this->command->warn('⚠️ Some Flutterwave subaccount API calls failed; falling back to seeded records. Check logs for details.');
+        }
+
+        $this->command->info(sprintf(
+            '🏦 Prepared %d vendor subaccounts%s.',
+            $subaccountsCreated,
+            $shouldCallFlutterwave ? ' (Flutterwave API enabled)' : ''
+        ));
 
         // === PHASE 2: Create ShopHandlers (Only vendors own shops) ===
         $this->command->info('🏪 Creating vendor shops...');

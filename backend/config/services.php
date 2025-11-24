@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'flutterwave' => [
+        'seed_subaccounts' => env('FLW_SEED_SUBACCOUNTS', false),
+        'seed_bank_code' => env('FLW_SEED_BANK_CODE', '035'),
+        'seed_bank_name' => env('FLW_SEED_BANK_NAME', 'Stanbic Bank Uganda'),
+        'seed_country' => env('FLW_SEED_COUNTRY', 'UG'),
+        'seed_split_percentage' => env('FLW_SEED_SPLIT_PERCENTAGE', 50),
+    ],
+
 ];
