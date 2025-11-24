@@ -81,7 +81,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/vendor/orders/{order}/reject', [OrderController::class, 'rejectOrder']);
     });
     Route::apiResource('orders', OrderController::class);
-    
+
     // Atomic order creation with payment
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders/with-payment', [OrderController::class, 'storeWithPayment']);
@@ -137,7 +137,7 @@ Route::prefix('v1')->group(function () {
 // Test routes for creating a subaccount on Flutterwave
 Route::middleware('auth:sanctum')->group(function () {
     // Route to get the logged in user and create a subaccount on flutterwave and subaccount record for them
-    Route::get('/test-flutterwave-subaccount', function(Request $request) {
+    Route::get('/test-flutterwave-subaccount', function (Request $request) {
         $flw = new FlutterwaveService();
         $subaccount = $flw->createSubaccount([
             'business_name' => $request->user()->name . ' Restaurant',
@@ -147,10 +147,10 @@ Route::middleware('auth:sanctum')->group(function () {
             'account_bank' => '035',
             'account_number' => $request->user()->phone,
             'split_type' => 'percentage',
-            'split_value' => 0.5,  
+            'split_value' => 0.5,
             'country' => 'CM',
         ]);
-        if($subaccount['status'] == 'success'){
+        if ($subaccount['status'] == 'success') {
             $subaccount = Subaccount::create([
                 'user_id' => $request->user()->id,
                 'subaccount_id' => $subaccount['data']['subaccount_id'],
@@ -163,21 +163,21 @@ Route::middleware('auth:sanctum')->group(function () {
                 'account_number' => $subaccount['data']['account_number'],
                 'split_value_in_percentage' => 0.5,
             ]);
-        }else{
-            return response()->json(['message' => 'Failed to create subaccount '.$subaccount['message'], 'subaccount' => $subaccount], 500);
+        } else {
+            return response()->json(['message' => 'Failed to create subaccount ' . $subaccount['message'], 'subaccount' => $subaccount], 500);
         }
         return response()->json(['message' => 'Subaccount created successfully', 'subaccount' => $subaccount], 200);
     });
 
     // Route to get all subaccounts from flutterwave
-    Route::get('/test-flutterwave-subaccounts', function(Request $request) {
+    Route::get('/test-flutterwave-subaccounts', function (Request $request) {
         $flw = new FlutterwaveService();
         $subaccounts = $flw->getAllSubaccounts();
         return response()->json(['subaccounts' => $subaccounts], 200);
     });
 
     // Route to get banks and codes from flutterwave
-    Route::get('/test-flutterwave-banks-and-codes', function(Request $request) {
+    Route::get('/test-flutterwave-banks-and-codes', function (Request $request) {
         $flw = new FlutterwaveService();
         $banks = $flw->getBanksAndCodes();
         return response()->json(['banks' => $banks], 200);
@@ -187,14 +187,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/test-flutterwave-delete-subaccount/{subAccountId}', function ($subAccountId) {
         $flw = new FlutterwaveService();
         $response = $flw->deleteSubaccount($subAccountId);
-    
+
         if (isset($response['status']) && $response['status'] === 'success') {
             return response()->json([
                 'message' => 'Subaccount successfully deleted',
                 'flutterwave_response' => $response
             ]);
         }
-    
+
         // If deletion failed or API returned an error
         return response()->json([
             'message' => 'Failed to delete subaccount',
@@ -204,27 +204,27 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // Route to Test payment process
-    Route::post('/test-payment-for-order', function(Request  $request){
+    Route::post('/test-payment-for-order', function (Request  $request) {
         // Extract the first Order from the login user
         $test_order = Order::whereHas('shop', function ($query) {
             $query->where('id', '01k2cdnvdtrz2gn6w2gjchd74w');  // Orders from Jane Vendor's shop
         })
-        ->where('user_id', $request->user()->id)
-        ->first();
-    
+            ->where('user_id', $request->user()->id)
+            ->first();
+
         if (!$test_order) {
             return response()->json(['error' => 'No order found for this user'], 404);
         }
-    
+
         $test_vendor = User::findOrFail($test_order->shop->owner_id);
         $test_customer_name = $request->user()->name;
         $test_customer_email = $request->user()->email;
-        
+
         $test_data = [
-            'vendor_id'=> $test_vendor->id, 
+            'vendor_id' => $test_vendor->id,
             'amount' => $request['amount'],
-            'email'=> $test_customer_email,
-            'name'=> $test_customer_name,
+            'email' => $test_customer_email,
+            'name' => $test_customer_name,
             'order_id' => $test_order->id,
             'payment_method' => $request['paymentMethod'],
         ];
@@ -241,35 +241,34 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Call the method
         return $paymentController->pay($mockRequest, $flwService);
-
     });
 });
 // Test Routes for Payment by Momo
-Route::middleware('auth:sanctum')->group(function (){
+Route::middleware('auth:sanctum')->group(function () {
     // MoMo collection endpoints
-    Route::post('test-momo-initiate-payment',function(Request $request){
-         // Extract the first Order from the login user
-         $test_order = Order::whereHas('shop', function ($query) {
+    Route::post('test-momo-initiate-payment', function (Request $request) {
+        // Extract the first Order from the login user
+        $test_order = Order::whereHas('shop', function ($query) {
             $query->where('id', '01k2cdnvdtrz2gn6w2gjchd74w');  // Orders from Jane Vendor's shop
         })
-        ->where('user_id', $request->user()->id)
-        ->first();
-    
+            ->where('user_id', $request->user()->id)
+            ->first();
+
         if (!$test_order) {
             return response()->json([
                 'error' => 'No order found for this user',
                 'user' => $request->user()
             ], 404);
         }
-    
+
         $test_vendor = User::findOrFail($test_order->shop->owner_id);
         $test_customer_number = $request->user()->phone ?? !$request['number'];
-        
+
         $test_data = [
-             'vendor_id'=>$test_vendor->id,
-             'payer_number' => $test_customer_number,
-             'amount'=> $request['amount'],
-             'order_id'=>$test_order->id,
+            'vendor_id' => $test_vendor->id,
+            'payer_number' => $test_customer_number,
+            'amount' => $request['amount'],
+            'order_id' => $test_order->id,
         ];
 
         $mockRequest = new Request($test_data);
@@ -285,21 +284,21 @@ Route::middleware('auth:sanctum')->group(function (){
 });
 
 // Add to backend/routes/api.php
-Route::get('/test-broadcast', function() {
+Route::get('/test-broadcast', function () {
     event(new \App\Events\TestBroadcast());
     return response()->json(['message' => 'Test broadcast']);
 });
 // Add to your test route in api.php:
-Route::get('/test-reverb-connection', function() {
+Route::get('/test-reverb-connection', function () {
     try {
         $broadcaster = app('Illuminate\Broadcasting\BroadcastManager');
         $connection = $broadcaster->connection('reverb');
-        
+
         Log::info('🔗 Reverb connection test', [
             'driver' => get_class($connection),
             'config' => config('broadcasting.connections.reverb')
         ]);
-        
+
         return response()->json([
             'status' => 'Connection created',
             'driver' => get_class($connection)
@@ -308,7 +307,7 @@ Route::get('/test-reverb-connection', function() {
         Log::error('❌ Reverb connection failed', [
             'error' => $e->getMessage()
         ]);
-        
+
         return response()->json([
             'error' => $e->getMessage()
         ], 500);
